@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# 环境与密钥
+.env
+.venv/
+
+# 本地数据目录（对齐 daw ~/.daw）
+.daw/
+*.db
+*.duckdb
+
+# 工具缓存
+.pytest_cache/
+.ruff_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 参考书目（版权，不入库）
+AI-Agents-in-Depth-zh-CN.pdf
