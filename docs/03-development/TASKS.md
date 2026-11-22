@@ -8,6 +8,7 @@
 - [x] 设计文档（`docs/02-design/`：TECH_STACK / PRINCIPLES / ARCHITECTURE / MODULE_DESIGN / DATABASE）
 - [x] 文档体系（`docs/README.md` + ADR 0001~0004 + glossary / references / open-questions）
 - [x] 工程初始化（Python 骨架 + uv 依赖 + smoke + pytest）
+- [x] 精简 PRD（`docs/01-requirements/PRD.md`：功能优先级 + 验收标准）
 
 ## 进行中 / 待规划
 
