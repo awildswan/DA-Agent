@@ -1,28 +1,22 @@
-"""最小 smoke：验证环境跑得通（config / sqlglot / duckdb / langchain），不调 LLM。
+"""入口：`python -m daagent`（smoke）或 `python -m daagent ask "问题"`（V0.1 最小闭环）。"""
 
-用法：`python -m daagent`，打印 SMOKE OK 即环境就绪。
-"""
+import sys
 
 import duckdb
-import langchain_core  # noqa: F401  确保可导入
+import langchain_core  # noqa: F401
 import sqlglot
 
 from daagent.config import get_settings
 
 
-def main() -> None:
+def smoke() -> None:
     s = get_settings()
     print(
         f"[config] model={s.deepseek_model} base={s.openai_api_base} "
         f"row_limit={s.query_row_limit}"
     )
-
-    # sqlglot：解析 + 结构校验
     sql = "SELECT region, COUNT(*) FROM dw_order WHERE status = 'paid' GROUP BY region"
-    parsed = sqlglot.parse_one(sql)
-    print(f"[sqlglot] parsed: {type(parsed).__name__}")
-
-    # duckdb：内存执行
+    print(f"[sqlglot] parsed: {type(sqlglot.parse_one(sql)).__name__}")
     con = duckdb.connect()
     con.execute("CREATE TABLE t(region VARCHAR, n INT)")
     con.execute("INSERT INTO t VALUES ('华东', 10), ('华南', 20)")
@@ -30,8 +24,20 @@ def main() -> None:
         "SELECT region, SUM(n) FROM t GROUP BY region ORDER BY region"
     ).fetchall()
     print(f"[duckdb] {rows}")
-
     print("SMOKE OK")
+
+
+def main() -> None:
+    if len(sys.argv) >= 2 and sys.argv[1] == "ask":
+        from daagent.runner import run
+
+        q = " ".join(sys.argv[2:])
+        if not q:
+            print('用法: python -m daagent ask "问题"')
+            return
+        print(run(q))
+    else:
+        smoke()
 
 
 if __name__ == "__main__":

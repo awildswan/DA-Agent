@@ -9,10 +9,10 @@
 - [x] 文档体系（`docs/README.md` + ADR 0001~0004 + glossary / references / open-questions）
 - [x] 工程初始化（Python 骨架 + uv 依赖 + smoke + pytest）
 - [x] 精简 PRD（`docs/01-requirements/PRD.md`：功能优先级 + 验收标准）
+- [x] 最小闭环（V0.1）：⑤生成 SQL → ⑥执行 → ⑨交付（接 DeepSeek，跑通）
 
 ## 进行中 / 待规划
 
-- [ ] 最小闭环（V0.1）：⑤生成 SQL → ⑥执行 → ⑨交付（接 DeepSeek）
 - [ ] 核心取数链路（④穷尽探查 → ⑤生成 → ⑥执行）
 - [ ] 交付闸门 + 自纠环（⑦⑧）
 - [ ] OKF 知识库 + 语义层（①②⑪）
