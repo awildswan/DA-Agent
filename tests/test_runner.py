@@ -35,4 +35,4 @@ def test_guard_ignores_literal_keyword():
 
 def test_sample_db():
     con = sample_db()
-    assert con.execute("SELECT COUNT(*) FROM orders").fetchone()[0] == 6
+    assert con.execute("SELECT COUNT(*) FROM orders").fetchone()[0] == 7

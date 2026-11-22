@@ -1,6 +1,6 @@
-"""agent runner：V0.1 最小闭环（⑤生成 SQL → ⑥执行 → ⑨交付）。
+"""agent runner：V0.2 最小闭环 + 交付闸门 + 自纠环。
 
-环节见 docs/02-design/MODULE_DESIGN.md。V0.1 只做单跳取数，不接闸门 / 知识库 / 探查。
+链路：⑤生成 SQL → ⑥执行 → ⑨交付（自然语言结论）→ ⑦交付闸门 → ⑧自纠（≤2 轮）。
 """
 
 import re
@@ -9,6 +9,8 @@ from langchain_openai import ChatOpenAI
 
 from daagent.config import get_settings
 from daagent.db.sample import sample_db, schema_str
+from daagent.delivery_check.declarations import DEFAULT_DECLARATIONS
+from daagent.delivery_check.guards import RedFlag, run_guards
 
 # 只读禁词（词边界匹配，宁误拦不漏放）
 _FORBIDDEN = (
@@ -23,9 +25,25 @@ _FORBIDDEN = (
     "DETACH",
 )
 
+_SQL_SYSTEM = (
+    "你是数据分析助手。根据给定数据库 schema，把用户的大白话问题转成一条只读 SQL（仅 SELECT）。"
+    "只输出 SQL，不要解释，不要 markdown 围栏。"
+)
+
+_CONCLUDE_SYSTEM = (
+    "你是数据分析助手。根据查询结果，用一句自然语言回答用户问题。"
+    "规则：① 首句直接给出数字；② 区域等实体名称必须用查询结果里的标准值，不要自己造；"
+    "③ 数字必须来自查询结果，查不到就写「未知」。"
+)
+
+_CORRECT_SYSTEM = (
+    "你上一版结论被交付闸门拦下，请修正。"
+    "规则：① 每个数字必须来自下方查询结果，查不到就写「未知」；"
+    "② 实体名称必须用标准值，不要自己造；③ 只输出修正后的结论。"
+)
+
 
 def _extract_sql(text: str) -> str:
-    """从 LLM 输出里取 SQL：剥掉 ```sql 围栏与行尾分号。"""
     text = text.strip()
     m = re.search(r"```(?:sql)?\s*(.*?)```", text, re.DOTALL | re.IGNORECASE)
     if m:
@@ -34,18 +52,52 @@ def _extract_sql(text: str) -> str:
 
 
 def _guard(sql: str) -> None:
-    """只读守卫：先抹字符串字面量，再词边界匹配禁词。"""
     stripped = re.sub(r"'(?:[^']|'')*'", "''", sql)
     for kw in _FORBIDDEN:
         if re.search(rf"\b{kw}\b", stripped, re.IGNORECASE):
             raise ValueError(f"只读守卫拦截：SQL 含禁词 {kw}")
 
 
-def _format(con, rows) -> str:
+def _format_result(con, rows) -> str:
     cols = [d[0] for d in con.description]
-    if len(rows) == 1 and len(cols) == 1:
-        return str(rows[0][0])
-    return "; ".join(str(dict(zip(cols, r))) for r in rows)
+    return "\n".join(", ".join(f"{c}={v}" for c, v in zip(cols, r)) for r in rows)
+
+
+def _generate_sql(llm, question: str) -> str:
+    resp = llm.invoke(
+        [("system", _SQL_SYSTEM), ("human", f"数据库 schema：\n{schema_str()}\n\n问题：{question}")]
+    )
+    return _extract_sql(resp.content)
+
+
+def _conclude(llm, question: str, result: str) -> str:
+    resp = llm.invoke(
+        [("system", _CONCLUDE_SYSTEM), ("human", f"问题：{question}\n查询结果：\n{result}")]
+    )
+    return resp.content.strip()
+
+
+def _correct(llm, question: str, result: str, reds: list[RedFlag]) -> str:
+    red_text = "\n".join(f"- {r.message}" for r in reds)
+    resp = llm.invoke(
+        [
+            ("system", _CORRECT_SYSTEM),
+            ("human", f"问题：{question}\n查询结果：\n{result}\n\n闸门拦下的问题：\n{red_text}"),
+        ]
+    )
+    return resp.content.strip()
+
+
+def _deliver(conclude, correct, question, result, declarations, max_rounds: int = 2):
+    """⑦ 交付闸门 → ⑧ 自纠环（≤ max_rounds 轮），conclude/correct 为可注入 callable（便于测试）。"""
+    conclusion = conclude(question, result)
+    reds = run_guards(conclusion, declarations)
+    for _ in range(max_rounds):
+        if not reds:
+            break
+        conclusion = correct(question, result, reds)
+        reds = run_guards(conclusion, declarations)
+    return conclusion, reds
 
 
 def run(question: str) -> str:
@@ -57,20 +109,24 @@ def run(question: str) -> str:
         temperature=0,
     )
     con = sample_db()
-    schema = schema_str()
 
-    system = (
-        "你是数据分析助手。根据给定数据库 schema，把用户的大白话问题转成一条只读 SQL（仅 SELECT）。"
-        "只输出 SQL，不要解释，不要 markdown 围栏。"
-    )
-    resp = llm.invoke(
-        [("system", system), ("human", f"数据库 schema：\n{schema}\n\n问题：{question}")]
-    )
-    sql = _extract_sql(resp.content)
+    sql = _generate_sql(llm, question)
     _guard(sql)
-
     con.execute(sql)
     rows = con.fetchall()
-    result = _format(con, rows)
+    result = _format_result(con, rows)
 
-    return f"{result}\n来源：orders 表（SQL：{sql}）"
+    conclusion, reds = _deliver(
+        lambda q, r: _conclude(llm, q, r),
+        lambda q, r, fl: _correct(llm, q, r, fl),
+        question,
+        result,
+        DEFAULT_DECLARATIONS,
+    )
+
+    if reds:
+        tail = "⚠️ 自纠后仍有 " + "；".join(r.message for r in reds) + "（请人工复核）"
+    else:
+        tail = ""
+
+    return f"{conclusion}\n{tail}\n来源：orders 表（SQL：{sql}）".strip()
