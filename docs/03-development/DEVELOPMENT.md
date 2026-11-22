@@ -28,10 +28,11 @@ uv run ruff check          # lint
 ## 目录结构
 
 ```
-daagent/          # 包（核心无头可跑）
-├── __main__.py   # smoke 入口
+src/daagent/      # 包（核心无头可跑）
+├── __main__.py   # smoke 入口 + ask 子命令
 ├── config.py     # pydantic-settings
-├── runner.py     # 14 环节循环（骨架）
+├── runner.py     # V0.1 最小闭环（14 环节逐步扩展）
+├── db/sample.py  # V0.1 示例库
 ├── skills/ delivery_check/ okf/ evals/ tracing/ db/   # 模块（骨架）
 tests/            # pytest
 docs/             # 文档体系
