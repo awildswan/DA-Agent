@@ -1,4 +1,4 @@
-"""agent runner：V0.2 最小闭环 + 交付闸门 + 自纠环。
+"""agent runner：最小闭环 + 交付闸门（值域/关系/核对真值）+ 自纠环。
 
 链路：⑤生成 SQL → ⑥执行 → ⑨交付（自然语言结论）→ ⑦交付闸门 → ⑧自纠（≤2 轮）。
 """
@@ -10,7 +10,7 @@ from langchain_openai import ChatOpenAI
 from daagent.config import get_settings
 from daagent.db.sample import sample_db, schema_str
 from daagent.delivery_check.declarations import DEFAULT_DECLARATIONS
-from daagent.delivery_check.guards import RedFlag, run_guards
+from daagent.delivery_check.guards import RedFlag, run_guards, truth_check
 
 # 只读禁词（词边界匹配，宁误拦不漏放）
 _FORBIDDEN = (
@@ -38,7 +38,7 @@ _CONCLUDE_SYSTEM = (
 
 _CORRECT_SYSTEM = (
     "你上一版结论被交付闸门拦下，请修正。"
-    "规则：① 每个数字必须来自下方查询结果，查不到就写「未知」；"
+    "规则：① 每个数字必须来自下方查询结果或直查真值，查不到就写「未知」；"
     "② 实体名称必须用标准值，不要自己造；③ 只输出修正后的结论。"
 )
 
@@ -77,26 +77,31 @@ def _conclude(llm, question: str, result: str) -> str:
     return resp.content.strip()
 
 
-def _correct(llm, question: str, result: str, reds: list[RedFlag]) -> str:
+def _correct(llm, question: str, result: str, reds: list[RedFlag], truths) -> str:
     red_text = "\n".join(f"- {r.message}" for r in reds)
+    truth_text = "\n".join(f"- {label} 直查真值 = {tv:g}" for label, tv, _ in truths)
     resp = llm.invoke(
         [
             ("system", _CORRECT_SYSTEM),
-            ("human", f"问题：{question}\n查询结果：\n{result}\n\n闸门拦下的问题：\n{red_text}"),
+            (
+                "human",
+                f"问题：{question}\n查询结果：\n{result}\n\n直查真值：\n{truth_text}\n\n"
+                f"闸门拦下的问题：\n{red_text}",
+            ),
         ]
     )
     return resp.content.strip()
 
 
-def _deliver(conclude, correct, question, result, declarations, max_rounds: int = 2):
-    """⑦ 交付闸门 → ⑧ 自纠环（≤ max_rounds 轮），conclude/correct 为可注入 callable（便于测试）。"""
+def _deliver(conclude, correct, check, question, result, max_rounds: int = 2):
+    """⑦ 交付闸门 → ⑧ 自纠环（≤ max_rounds 轮），conclude/correct/check 可注入（便于测试）。"""
     conclusion = conclude(question, result)
-    reds = run_guards(conclusion, declarations)
+    reds = check(conclusion)
     for _ in range(max_rounds):
         if not reds:
             break
         conclusion = correct(question, result, reds)
-        reds = run_guards(conclusion, declarations)
+        reds = check(conclusion)
     return conclusion, reds
 
 
@@ -116,12 +121,26 @@ def run(question: str) -> str:
     rows = con.fetchall()
     result = _format_result(con, rows)
 
+    # 核对 SQL 真值（直查，进修正指令做接地）
+    truths = []
+    for t in DEFAULT_DECLARATIONS.truth_checks:
+        con.execute(t.sql)
+        truths.append((t.label, float(con.fetchone()[0] or 0), t.tolerance))
+
+    def check(conclusion: str) -> list[RedFlag]:
+        reds = run_guards(conclusion, DEFAULT_DECLARATIONS)
+        for label, tv, tol in truths:
+            f = truth_check(conclusion, label, tv, tol)
+            if f:
+                reds.append(f)
+        return reds
+
     conclusion, reds = _deliver(
         lambda q, r: _conclude(llm, q, r),
-        lambda q, r, fl: _correct(llm, q, r, fl),
+        lambda q, r, fl: _correct(llm, q, r, fl, truths),
+        check,
         question,
         result,
-        DEFAULT_DECLARATIONS,
     )
 
     if reds:

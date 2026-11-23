@@ -1,12 +1,27 @@
-"""delivery_check：交付闸门（值域守卫 / 关系守卫 / 核对 SQL 真值）。"""
+"""delivery_check：交付闸门（值域 / 关系 / 核对 SQL 真值）。"""
 
-from daagent.delivery_check.guards import RedFlag, run_guards, value_domain_check
-from daagent.delivery_check.declarations import DEFAULT_DECLARATIONS, Declarations
+from daagent.delivery_check.guards import (
+    Declarations,
+    RedFlag,
+    RelationshipDecl,
+    TruthDecl,
+    ValueDomain,
+    relationship_check,
+    run_guards,
+    truth_check,
+    value_domain_check,
+)
+from daagent.delivery_check.declarations import DEFAULT_DECLARATIONS
 
 __all__ = [
     "RedFlag",
-    "run_guards",
-    "value_domain_check",
-    "DEFAULT_DECLARATIONS",
+    "ValueDomain",
+    "RelationshipDecl",
+    "TruthDecl",
     "Declarations",
+    "value_domain_check",
+    "relationship_check",
+    "truth_check",
+    "run_guards",
+    "DEFAULT_DECLARATIONS",
 ]
