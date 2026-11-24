@@ -13,7 +13,7 @@ from langchain_openai import ChatOpenAI
 from daagent.agent.react import run_react
 from daagent.config import get_settings
 from daagent.db.query import _format_result
-from daagent.db.sample import sample_db, schema_str
+from daagent.db.sample import list_tables as db_list_tables, sample_db, schema_for_table
 from daagent.delivery_check.declarations import DEFAULT_GUARDS_CONTENT, build_declarations
 from daagent.delivery_check.guards import RedFlag, run_guards, truth_check
 from daagent.okf.recall import _recall_concepts, _valid_concept
@@ -46,12 +46,12 @@ def run(question: str) -> str:
     @tool
     def list_tables() -> str:
         """列出可用表。"""
-        return "orders（订单表）"
+        return "、".join(db_list_tables())
 
     @tool
     def describe_table(table: str) -> str:
         """返回指定表的 schema。"""
-        return schema_str()
+        return schema_for_table(table)
 
     @tool
     def execute_query(sql: str) -> str:
