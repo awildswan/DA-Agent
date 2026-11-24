@@ -17,6 +17,7 @@ data/
 
 # 工具缓存
 .pytest_cache/
+.pytest_basetemp/
 .ruff_cache/
 
 # OS
