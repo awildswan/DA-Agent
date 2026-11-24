@@ -1,13 +1,16 @@
-"""agent runner：主流程编排。
+"""agent runner：ReAct 工具调用循环 + 交付闸门 + 自纠环。
 
-链路：①召回 OKF 口径 → ⑤生成 SQL → ⑥执行 → ⑨交付（结构化 JSON 结论）→ ⑦闸门 → ⑧自纠 → ⑪沉淀。
+LLM 有工具集（查口径/列表/看结构/执行 SQL/记口径），自己决定调用顺序；最终输出结构化 JSON 结论，
+交付闸门检查，红灯则 in-context 自纠（≤2 轮）。
 """
 
 from pathlib import Path
 
+from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
 
-from daagent.agent.loop import _deliver
+from daagent.agent.react import run_react
 from daagent.config import get_settings
 from daagent.db.query import _format_result
 from daagent.db.sample import sample_db, schema_str
@@ -15,53 +18,9 @@ from daagent.delivery_check.declarations import DEFAULT_GUARDS_CONTENT, build_de
 from daagent.delivery_check.guards import RedFlag, run_guards, truth_check
 from daagent.okf.recall import _recall_concepts, _valid_concept
 from daagent.okf.store import OkfStore
-from daagent.parsing import _extract_sql, _parse_concept_json, _parse_conclusion_json
+from daagent.parsing import _parse_conclusion_json
 from daagent.prompts import load_prompt
 from daagent.skills.sql import _guard
-
-
-def _generate_sql(llm, question: str, concepts_text: str) -> str:
-    human = f"数据库 schema：\n{schema_str()}\n\n{concepts_text}\n\n问题：{question}"
-    resp = llm.invoke([("system", load_prompt("sql")), ("human", human)])
-    return _extract_sql(resp.content)
-
-
-def _conclude(llm, question: str, result: str, sql: str) -> dict:
-    """⑨ 交付：结构化结论（answer/numbers/entities），接地到本次 SQL + 结果。"""
-    resp = llm.invoke(
-        [
-            ("system", load_prompt("conclude")),
-            ("human", f"问题：{question}\n本次 SQL：{sql}\n查询结果：\n{result}"),
-        ]
-    )
-    return _parse_conclusion_json(resp.content)
-
-
-def _correct(llm, question: str, result: str, reds: list[RedFlag], truths) -> dict:
-    red_text = "\n".join(f"- {r.message}" for r in reds)
-    truth_text = "\n".join(f"- {label} 直查真值 = {tv:g}" for label, tv, _ in truths)
-    resp = llm.invoke(
-        [
-            ("system", load_prompt("correct")),
-            (
-                "human",
-                f"问题：{question}\n查询结果：\n{result}\n直查真值：\n{truth_text}\n\n"
-                f"闸门拦下的问题：\n{red_text}",
-            ),
-        ]
-    )
-    return _parse_conclusion_json(resp.content)
-
-
-def _extract_concept(llm, question: str, conclusion: str, sql: str) -> dict | None:
-    """⑪ 沉淀：让 LLM 判断是否用了业务概念，结构化输出 JSON；definition 接地到本次 SQL。"""
-    resp = llm.invoke(
-        [
-            ("system", load_prompt("concept")),
-            ("human", f"问题：{question}\n结论：{conclusion}\n本次 SQL：{sql}"),
-        ]
-    )
-    return _parse_concept_json(resp.content)
 
 
 def run(question: str) -> str:
@@ -73,23 +32,47 @@ def run(question: str) -> str:
         temperature=0,
     )
     con = sample_db()
-
-    # 守卫声明从 OKF 加载（首次运行自动播种）
     okf = OkfStore(Path("data/okf"))
     if okf.read("guards", "orders") is None:
         okf.write("guards", "orders", DEFAULT_GUARDS_CONTENT)
     declarations = build_declarations(okf, con)
 
-    # ① 召回：把已确认的业务口径注入生成 SQL 的上下文
-    concepts_text = _recall_concepts(okf)
+    # —— 工具（LLM 可主动调用）——
+    @tool
+    def search_knowledge(query: str) -> str:
+        """搜索已确认的业务口径。"""
+        return _recall_concepts(okf) or "（知识库暂无已确认口径）"
 
-    sql = _generate_sql(llm, question, concepts_text)
-    _guard(sql)
-    con.execute(sql)
-    rows = con.fetchall()
-    result = _format_result(con, rows)
+    @tool
+    def list_tables() -> str:
+        """列出可用表。"""
+        return "orders（订单表）"
 
-    # 核对 SQL 真值（直查，进修正指令做接地）
+    @tool
+    def describe_table(table: str) -> str:
+        """返回指定表的 schema。"""
+        return schema_str()
+
+    @tool
+    def execute_query(sql: str) -> str:
+        """执行一条只读 SQL，返回结果行。"""
+        _guard(sql)
+        con.execute(sql)
+        return _format_result(con, con.fetchall())
+
+    @tool
+    def record_concept(name: str, definition: str) -> str:
+        """记录一个业务口径（概念 = 取数定义）。"""
+        if not _valid_concept(name, definition):
+            return f"未记录（定义无效：空/自指/空泛）"
+        okf.write("concepts", name, f"{name} = {definition}")
+        return f"已记录：{name} = {definition}"
+
+    tools = [search_knowledge, list_tables, describe_table, execute_query, record_concept]
+    tools_by_name = {t.name: t for t in tools}
+    llm_with_tools = llm.bind_tools(tools)
+
+    # 核对 SQL 真值（直查，进自纠做接地）
     truths = []
     for t in declarations.truth_checks:
         con.execute(t.sql)
@@ -104,29 +87,30 @@ def run(question: str) -> str:
                 reds.append(f)
         return reds
 
-    structured, reds = _deliver(
-        lambda q, r: _conclude(llm, q, r, sql),
-        lambda q, r, fl: _correct(llm, q, r, fl, truths),
-        check,
-        question,
-        result,
-    )
+    # —— ReAct 循环 + 闸门/自纠（≤2 轮）——
+    messages = [SystemMessage(load_prompt("react")), HumanMessage(question)]
+    text = run_react(llm_with_tools, messages, tools_by_name)
+    structured = _parse_conclusion_json(text)
+
+    for _ in range(2):
+        reds = check(structured)
+        if not reds:
+            break
+        messages.append(
+            HumanMessage(
+                "上一版结论被交付闸门拦下："
+                + "；".join(r.message for r in reds)
+                + "。请修正后重新输出 JSON。"
+            )
+        )
+        text = run_react(llm_with_tools, messages, tools_by_name)
+        structured = _parse_conclusion_json(text)
 
     answer = structured.get("answer", "（结论解析失败）")
-
-    # ⑪ 沉淀：用了业务口径 → 结构化 JSON → 写回 OKF（干净交付 + 定义有效才沉淀）
-    if not reds:
-        concept = _extract_concept(llm, question, answer, sql)
-        if concept and _valid_concept(concept["concept"], concept["definition"]):
-            okf.write(
-                "concepts",
-                concept["concept"],
-                f"{concept['concept']} = {concept['definition']}",
-            )
 
     if reds:
         tail = "⚠️ 自纠后仍有 " + "；".join(r.message for r in reds) + "（请人工复核）"
     else:
         tail = ""
 
-    return f"{answer}\n{tail}\n来源：orders 表（SQL：{sql}）".strip()
+    return f"{answer}\n{tail}".strip()
