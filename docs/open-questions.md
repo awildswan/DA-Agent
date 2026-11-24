@@ -12,3 +12,5 @@
 | 5 | 交付闸门「宁漏不误」的误报 / 漏报率阈值，需真实数据调参 | 待实测 | MODULE_DESIGN.md ⑦ |
 | 6 | `queryRowLimit` / 超时 / 并发的默认值，需实测定 | 待实测 | MODULE_DESIGN.md ⑥ |
 | 7 | 商业模型 / 价值链锚点如何量化沉淀（原则⑥ 轻量版的具体形态） | 待细化 | MODULE_DESIGN.md ⑩ |
+| 8 | 上下文压缩的阈值与摘要方式（何时压、压到多细） | 待实测 | MODULE_DESIGN.md ⑮ |
+| 9 | 多轮澄清的交互形态（CLI 交互 vs 桌面 UI） | 待定 | MODULE_DESIGN.md ⑮ |
