@@ -1,7 +1,8 @@
-"""语义层（召回 / 沉淀）离线单测——只测纯函数，不调 LLM。"""
+"""语义层（召回 / 沉淀）+ 解析 离线单测——只测纯函数，不调 LLM。"""
 
+from daagent.okf.recall import _recall_concepts, _valid_concept
 from daagent.okf.store import OkfStore
-from daagent.runner import _parse_concept_json, _recall_concepts
+from daagent.parsing import _parse_concept_json, _parse_conclusion_json
 
 
 def test_recall_concepts_reads_okf(tmp_path):
@@ -39,9 +40,17 @@ def test_parse_concept_json_invalid():
     assert _parse_concept_json("这不是 JSON") is None
 
 
-def test_parse_conclusion_json():
-    from daagent.runner import _parse_conclusion_json
+def test_valid_concept_rejects_tautology():
+    assert _valid_concept("有效订单", "有效订单 = 未展开说明") is False  # 自指
+    assert _valid_concept("有效订单", "status='paid'（已支付）") is True
 
+
+def test_valid_concept_rejects_vague():
+    assert _valid_concept("有效订单", "未给出具体定义") is False
+    assert _valid_concept("有效订单", "") is False
+
+
+def test_parse_conclusion_json():
     s = _parse_conclusion_json(
         '{"answer": "6 单", "numbers": {"有效订单": 6}, "entities": ["华东"]}'
     )
@@ -51,21 +60,5 @@ def test_parse_conclusion_json():
 
 
 def test_parse_conclusion_json_fallback_on_garbage():
-    from daagent.runner import _parse_conclusion_json
-
     s = _parse_conclusion_json("这不是 JSON")
     assert s["answer"] == "（结论解析失败）"
-
-
-def test_valid_concept_rejects_tautology():
-    from daagent.runner import _valid_concept
-
-    assert _valid_concept("有效订单", "有效订单 = 未展开说明") is False  # 自指
-    assert _valid_concept("有效订单", "status='paid'（已支付）") is True
-
-
-def test_valid_concept_rejects_vague():
-    from daagent.runner import _valid_concept
-
-    assert _valid_concept("有效订单", "未给出具体定义") is False
-    assert _valid_concept("有效订单", "") is False

@@ -1,110 +1,23 @@
-"""agent runner：最小闭环 + 交付闸门 + 自纠环 + 越用越懂（①召回 ②语义映射 ⑪沉淀）。
+"""agent runner：主流程编排。
 
 链路：①召回 OKF 口径 → ⑤生成 SQL → ⑥执行 → ⑨交付（结构化 JSON 结论）→ ⑦闸门 → ⑧自纠 → ⑪沉淀。
-结论用结构化 JSON（answer/numbers/entities），守卫查结构，不解析自由文本。
 """
 
-import json
-import re
 from pathlib import Path
 
 from langchain_openai import ChatOpenAI
 
+from daagent.agent.loop import _deliver
 from daagent.config import get_settings
+from daagent.db.query import _format_result
 from daagent.db.sample import sample_db, schema_str
 from daagent.delivery_check.declarations import DEFAULT_GUARDS_CONTENT, build_declarations
 from daagent.delivery_check.guards import RedFlag, run_guards, truth_check
+from daagent.okf.recall import _recall_concepts, _valid_concept
 from daagent.okf.store import OkfStore
+from daagent.parsing import _extract_sql, _parse_concept_json, _parse_conclusion_json
 from daagent.prompts import load_prompt
-
-# 只读禁词（词边界匹配，宁误拦不漏放）
-_FORBIDDEN = (
-    "DROP",
-    "DELETE",
-    "UPDATE",
-    "ALTER",
-    "INSERT",
-    "TRUNCATE",
-    "CREATE",
-    "ATTACH",
-    "DETACH",
-)
-
-
-def _extract_sql(text: str) -> str:
-    text = text.strip()
-    m = re.search(r"```(?:sql)?\s*(.*?)```", text, re.DOTALL | re.IGNORECASE)
-    if m:
-        text = m.group(1)
-    return text.strip().rstrip(";").strip()
-
-
-def _guard(sql: str) -> None:
-    stripped = re.sub(r"'(?:[^']|'')*'", "''", sql)
-    for kw in _FORBIDDEN:
-        if re.search(rf"\b{kw}\b", stripped, re.IGNORECASE):
-            raise ValueError(f"只读守卫拦截：SQL 含禁词 {kw}")
-
-
-def _format_result(con, rows) -> str:
-    cols = [d[0] for d in con.description]
-    return "\n".join(", ".join(f"{c}={v}" for c, v in zip(cols, r)) for r in rows)
-
-
-def _recall_concepts(okf: OkfStore) -> str:
-    """① 召回：读 OKF concepts，返回「已知业务口径」文本（无则空串）。"""
-    concepts = [
-        okf.read(cat, name)
-        for cat, name in okf.list_blocks()
-        if cat == "concepts"
-    ]
-    concepts = [c for c in concepts if c]
-    if not concepts:
-        return ""
-    return "已知业务口径（之前确认过的，请沿用）：\n" + "\n".join(f"- {c}" for c in concepts)
-
-
-def _parse_json(text: str) -> dict | None:
-    """解析 LLM 输出的 JSON（剥掉 ```json 围栏）。"""
-    text = text.strip()
-    m = re.search(r"```(?:json)?\s*(.*?)```", text, re.DOTALL | re.IGNORECASE)
-    if m:
-        text = m.group(1).strip()
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        return None
-
-
-def _parse_conclusion_json(text: str) -> dict:
-    """解析结构化结论，失败时给兜底（不 crash）。"""
-    data = _parse_json(text)
-    if not isinstance(data, dict) or not data.get("answer"):
-        return {"answer": "（结论解析失败）", "numbers": {}, "entities": []}
-    return {
-        "answer": str(data["answer"]),
-        "numbers": data.get("numbers") or {},
-        "entities": data.get("entities") or [],
-    }
-
-
-def _parse_concept_json(text: str) -> dict | None:
-    data = _parse_json(text)
-    if isinstance(data, dict) and data.get("concept"):
-        return {"concept": data["concept"], "definition": data.get("definition", "")}
-    return None
-
-
-_VAGUE = ("未展开", "具体定义", "未给出", "该口径")
-
-
-def _valid_concept(concept: str, definition: str) -> bool:
-    """写入守卫：拒写空定义 / 自指（同义反复）/ 空泛定义。"""
-    if not concept or not definition:
-        return False
-    if concept in definition:
-        return False
-    return not any(v in definition for v in _VAGUE)
+from daagent.skills.sql import _guard
 
 
 def _generate_sql(llm, question: str, concepts_text: str) -> str:
@@ -149,18 +62,6 @@ def _extract_concept(llm, question: str, conclusion: str, sql: str) -> dict | No
         ]
     )
     return _parse_concept_json(resp.content)
-
-
-def _deliver(conclude, correct, check, question, result, max_rounds: int = 2):
-    """⑦ 交付闸门 → ⑧ 自纠环（≤ max_rounds 轮），conclude/correct/check 可注入（便于测试）。"""
-    structured = conclude(question, result)
-    reds = check(structured)
-    for _ in range(max_rounds):
-        if not reds:
-            break
-        structured = correct(question, result, reds)
-        reds = check(structured)
-    return structured, reds
 
 
 def run(question: str) -> str:

@@ -14,8 +14,8 @@ from daagent.delivery_check.guards import (
     truth_check,
     value_domain_check,
 )
+from daagent.agent.loop import _deliver
 from daagent.okf.store import OkfStore
-from daagent.runner import _deliver
 
 
 # --- 值域守卫 ---

@@ -3,7 +3,8 @@
 import pytest
 
 from daagent.db.sample import sample_db
-from daagent.runner import _extract_sql, _guard
+from daagent.parsing import _extract_sql
+from daagent.skills.sql import _guard
 
 
 def test_extract_sql_plain():
