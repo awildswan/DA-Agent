@@ -13,5 +13,5 @@ _FALLBACKS = {
 
 
 def load_prompt(name: str) -> str:
-    p = _DIR / f"{name}.txt"
+    p = _DIR / f"{name}.md"
     return p.read_text(encoding="utf-8").strip() if p.exists() else _FALLBACKS[name]
