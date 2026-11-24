@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     # 模型（DeepSeek，OpenAI 兼容）
     openai_api_key: str = ""
     openai_api_base: str = "https://api.deepseek.com"
-    deepseek_model: str = "deepseek-chat"
+    deepseek_model: str = "deepseek-flash"
 
     # 查询
     query_row_limit: int = 200

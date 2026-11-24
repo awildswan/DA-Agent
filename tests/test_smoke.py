@@ -9,7 +9,7 @@ from daagent.config import Settings
 
 def test_config_defaults():
     s = Settings(_env_file=None)  # 不读 .env，用默认值
-    assert s.deepseek_model == "deepseek-chat"
+    assert s.deepseek_model == "deepseek-flash"
     assert s.query_row_limit == 200
 
 

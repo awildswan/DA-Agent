@@ -12,7 +12,7 @@
 ```bash
 uv sync                    # 建 .venv + 装依赖
 uv run python -m daagent   # smoke：验证环境（不调 LLM），打印 SMOKE OK
-uv run python -m daagent ask "华东区11月订单量"   # V0.1：问一句 → 生成 SQL → 执行 → 返回
+uv run python -m daagent ask "华东11月订单量"   # V0.1：问一句 → 生成 SQL → 执行 → 返回
 uv run pytest              # 跑测试
 uv run ruff check          # lint
 ```
@@ -23,7 +23,7 @@ uv run ruff check          # lint
 
 - `OPENAI_API_KEY` = 你的 DeepSeek key
 - `OPENAI_API_BASE` = `https://api.deepseek.com`
-- `DEEPSEEK_MODEL` = `deepseek-chat`
+- `DEEPSEEK_MODEL` = `deepseek-flash`
 
 ## 目录结构
 
