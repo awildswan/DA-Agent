@@ -17,22 +17,23 @@ class OkfStore:
         self.root.mkdir(parents=True, exist_ok=True)
         self._ensure_git()
 
+    def _run(self, cmd) -> None:
+        """跑 git 命令（静默；无 git 环境则跳过）。"""
+        try:
+            subprocess.run(
+                cmd, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            )
+        except FileNotFoundError:
+            pass
+
     def _path(self, category: str, name: str) -> Path:
         return self.root / category / f"{name}.md"
 
     def _ensure_git(self) -> None:
-        try:
-            if not (self.root / ".git").exists():
-                subprocess.run(["git", "init", "-q", str(self.root)], check=False)
-            subprocess.run(
-                ["git", "-C", str(self.root), "config", "user.name", "daagent"], check=False
-            )
-            subprocess.run(
-                ["git", "-C", str(self.root), "config", "user.email", "daagent@local"],
-                check=False,
-            )
-        except FileNotFoundError:
-            pass  # 无 git 环境：跳过版本化（文件仍正常读写）
+        if not (self.root / ".git").exists():
+            self._run(["git", "init", "-q", str(self.root)])
+        self._run(["git", "-C", str(self.root), "config", "user.name", "daagent"])
+        self._run(["git", "-C", str(self.root), "config", "user.email", "daagent@local"])
 
     def write(self, category: str, name: str, content: str) -> dict:
         """写入知识块（空内容拒写；同名覆盖 = 修正优先于并存）。返回回执 {板块, ±行数}。"""
@@ -59,12 +60,8 @@ class OkfStore:
         )
 
     def _commit(self, category: str, name: str, delta: int) -> None:
-        try:
-            subprocess.run(["git", "-C", str(self.root), "add", "-A"], check=False)
-            sign = "+" if delta >= 0 else ""
-            subprocess.run(
-                ["git", "-C", str(self.root), "commit", "-q", "-m", f"{category}/{name} {sign}{delta}"],
-                check=False,
-            )
-        except FileNotFoundError:
-            pass
+        self._run(["git", "-C", str(self.root), "add", "-A"])
+        sign = "+" if delta >= 0 else ""
+        self._run(
+            ["git", "-C", str(self.root), "commit", "-q", "-m", f"{category}/{name} {sign}{delta}"]
+        )
