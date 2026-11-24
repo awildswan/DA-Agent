@@ -1,6 +1,11 @@
 """交付闸门（值域 / 关系 / 核对真值）+ 自纠环 离线单测。"""
 
-from daagent.delivery_check.declarations import DEFAULT_DECLARATIONS, Declarations
+from daagent.db.sample import sample_db
+from daagent.delivery_check.declarations import (
+    DEFAULT_GUARDS_CONTENT,
+    Declarations,
+    build_declarations,
+)
 from daagent.delivery_check.guards import (
     RelationshipDecl,
     ValueDomain,
@@ -9,6 +14,7 @@ from daagent.delivery_check.guards import (
     truth_check,
     value_domain_check,
 )
+from daagent.okf.store import OkfStore
 from daagent.runner import _deliver
 
 
@@ -51,20 +57,19 @@ def test_relationship_passes_when_reconciles():
 
 def test_relationship_flags_mismatch():
     decl = RelationshipDecl(total_label="总销售额", part_labels=["华东", "华南", "华北", "华中"])
-    c = "总销售额 900 元，华东 450、华南 350、华北 120、华中 80"  # 900 ≠ 1000
+    c = "总销售额 900 元，华东 450、华南 350、华北 120、华中 80"
     f = relationship_check(c, decl)
     assert f is not None and f.kind == "relationship"
 
 
 def test_relationship_skips_when_part_missing():
-    # 宁漏不误：某个分部没提取到 → 不判
     decl = RelationshipDecl(total_label="总销售额", part_labels=["华东", "华南", "华北", "华中"])
     assert relationship_check("总销售额 1000 元", decl) is None
 
 
 def test_relationship_normalizes_wan():
     decl = RelationshipDecl(total_label="总销售额", part_labels=["华东", "华南"])
-    c = "总销售额 1 万，华东 0.4 万、华南 0.6 万"  # 10000 = 4000 + 6000
+    c = "总销售额 1 万，华东 0.4 万、华南 0.6 万"
     assert relationship_check(c, decl) is None
 
 
@@ -77,6 +82,30 @@ def test_truth_check_passes():
 def test_truth_check_flags():
     f = truth_check("总销售额 900 元", "总销售额", 1000, 0.01)
     assert f is not None and f.kind == "truth"
+
+
+# --- 守卫声明从 OKF + DISTINCT 加载 ---
+
+def test_build_declarations_from_okf_and_distinct(tmp_path):
+    okf = OkfStore(tmp_path / "okf")
+    okf.write("guards", "orders", DEFAULT_GUARDS_CONTENT)
+    con = sample_db()
+    decls = build_declarations(okf, con)
+
+    # 允许值域来自 OKF（业务声明），候选全集来自数据 DISTINCT（自动去硬编码）
+    assert decls.value_domains[0].allowed == ["华东", "华南", "华北"]
+    # universe 来自 DISTINCT（顺序无关，DuckDB 中文按字节序排，用集合比）
+    assert set(decls.value_domains[0].universe) == {"华东", "华南", "华北", "华中"}
+    assert decls.relationships[0].total_label == "总销售额"
+    assert decls.truth_checks[0].label == "总销售额"
+
+
+def test_build_declarations_empty_when_no_guards(tmp_path):
+    okf = OkfStore(tmp_path / "okf")
+    decls = build_declarations(okf, sample_db())
+    assert decls.value_domains == []
+    assert decls.relationships == []
+    assert decls.truth_checks == []
 
 
 # --- 自纠环 ---

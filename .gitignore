@@ -11,6 +11,7 @@ build/
 
 # 本地数据目录（对齐 daw ~/.daw）
 .daw/
+data/
 *.db
 *.duckdb
 

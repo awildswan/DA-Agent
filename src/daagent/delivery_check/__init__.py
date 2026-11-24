@@ -11,7 +11,7 @@ from daagent.delivery_check.guards import (
     truth_check,
     value_domain_check,
 )
-from daagent.delivery_check.declarations import DEFAULT_DECLARATIONS
+from daagent.delivery_check.declarations import DEFAULT_GUARDS_CONTENT, build_declarations
 
 __all__ = [
     "RedFlag",
@@ -23,5 +23,6 @@ __all__ = [
     "relationship_check",
     "truth_check",
     "run_guards",
-    "DEFAULT_DECLARATIONS",
+    "build_declarations",
+    "DEFAULT_GUARDS_CONTENT",
 ]

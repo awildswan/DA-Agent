@@ -1,16 +1,19 @@
 """agent runner：最小闭环 + 交付闸门（值域/关系/核对真值）+ 自纠环。
 
 链路：⑤生成 SQL → ⑥执行 → ⑨交付（自然语言结论）→ ⑦交付闸门 → ⑧自纠（≤2 轮）。
+守卫声明从 OKF 知识库加载（首次运行自动播种），候选全集从数据 DISTINCT 自动取。
 """
 
 import re
+from pathlib import Path
 
 from langchain_openai import ChatOpenAI
 
 from daagent.config import get_settings
 from daagent.db.sample import sample_db, schema_str
-from daagent.delivery_check.declarations import DEFAULT_DECLARATIONS
+from daagent.delivery_check.declarations import DEFAULT_GUARDS_CONTENT, build_declarations
 from daagent.delivery_check.guards import RedFlag, run_guards, truth_check
+from daagent.okf.store import OkfStore
 
 # 只读禁词（词边界匹配，宁误拦不漏放）
 _FORBIDDEN = (
@@ -115,6 +118,12 @@ def run(question: str) -> str:
     )
     con = sample_db()
 
+    # 守卫声明从 OKF 加载（首次运行自动播种）
+    okf = OkfStore(Path("data/okf"))
+    if okf.read("guards", "orders") is None:
+        okf.write("guards", "orders", DEFAULT_GUARDS_CONTENT)
+    declarations = build_declarations(okf, con)
+
     sql = _generate_sql(llm, question)
     _guard(sql)
     con.execute(sql)
@@ -123,12 +132,12 @@ def run(question: str) -> str:
 
     # 核对 SQL 真值（直查，进修正指令做接地）
     truths = []
-    for t in DEFAULT_DECLARATIONS.truth_checks:
+    for t in declarations.truth_checks:
         con.execute(t.sql)
         truths.append((t.label, float(con.fetchone()[0] or 0), t.tolerance))
 
     def check(conclusion: str) -> list[RedFlag]:
-        reds = run_guards(conclusion, DEFAULT_DECLARATIONS)
+        reds = run_guards(conclusion, declarations)
         for label, tv, tol in truths:
             f = truth_check(conclusion, label, tv, tol)
             if f:
