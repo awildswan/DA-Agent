@@ -1,4 +1,4 @@
-"""交付闸门（值域 / 关系 / 核对真值）+ 自纠环 离线单测。"""
+"""交付闸门（值域 / 关系 / 核对真值）+ 自纠环 离线单测（结构化数据）。"""
 
 from daagent.db.sample import sample_db
 from daagent.delivery_check.declarations import (
@@ -26,7 +26,7 @@ def test_value_domain_passes_when_all_allowed():
         allowed=["华东", "华南", "华北"],
         universe=["华东", "华南", "华北", "华中"],
     )
-    assert value_domain_check("华东 3 单、华南 2 单、华北 1 单", vd) == []
+    assert value_domain_check(["华东", "华南", "华北"], vd) == []
 
 
 def test_value_domain_flags_unknown():
@@ -35,52 +35,48 @@ def test_value_domain_flags_unknown():
         allowed=["华东", "华南", "华北"],
         universe=["华东", "华南", "华北", "华中"],
     )
-    assert value_domain_check("华东 3 单、华中 1 单", vd) == ["华中"]
+    assert value_domain_check(["华东", "华中"], vd) == ["华中"]
 
 
-def test_value_domain_no_false_positive_on_common_word():
+def test_value_domain_ignores_irrelevant_entities():
     vd = ValueDomain(
         category="region",
         allowed=["华东", "华南", "华北"],
         universe=["华东", "华南", "华北", "华中"],
     )
-    assert value_domain_check("各区域的订单量分别是多少", vd) == []
+    # 非候选全集的实体（如"订单"）不判
+    assert value_domain_check(["订单"], vd) == []
 
 
 # --- 关系守卫 ---
 
 def test_relationship_passes_when_reconciles():
     decl = RelationshipDecl(total_label="总销售额", part_labels=["华东", "华南", "华北", "华中"])
-    c = "总销售额 1000 元，华东 450、华南 350、华北 120、华中 80"
-    assert relationship_check(c, decl) is None
+    nums = {"总销售额": 1000, "华东": 450, "华南": 350, "华北": 120, "华中": 80}
+    assert relationship_check(nums, decl) is None
 
 
 def test_relationship_flags_mismatch():
     decl = RelationshipDecl(total_label="总销售额", part_labels=["华东", "华南", "华北", "华中"])
-    c = "总销售额 900 元，华东 450、华南 350、华北 120、华中 80"
-    f = relationship_check(c, decl)
+    nums = {"总销售额": 900, "华东": 450, "华南": 350, "华北": 120, "华中": 80}
+    f = relationship_check(nums, decl)
     assert f is not None and f.kind == "relationship"
 
 
 def test_relationship_skips_when_part_missing():
+    # 宁漏不误：某分部缺数字 → 不判
     decl = RelationshipDecl(total_label="总销售额", part_labels=["华东", "华南", "华北", "华中"])
-    assert relationship_check("总销售额 1000 元", decl) is None
-
-
-def test_relationship_normalizes_wan():
-    decl = RelationshipDecl(total_label="总销售额", part_labels=["华东", "华南"])
-    c = "总销售额 1 万，华东 0.4 万、华南 0.6 万"
-    assert relationship_check(c, decl) is None
+    assert relationship_check({"总销售额": 1000}, decl) is None
 
 
 # --- 核对 SQL 真值 ---
 
 def test_truth_check_passes():
-    assert truth_check("总销售额 1000 元", "总销售额", 1000, 0.01) is None
+    assert truth_check({"总销售额": 1000}, "总销售额", 1000, 0.01) is None
 
 
 def test_truth_check_flags():
-    f = truth_check("总销售额 900 元", "总销售额", 1000, 0.01)
+    f = truth_check({"总销售额": 900}, "总销售额", 1000, 0.01)
     assert f is not None and f.kind == "truth"
 
 
@@ -92,9 +88,7 @@ def test_build_declarations_from_okf_and_distinct(tmp_path):
     con = sample_db()
     decls = build_declarations(okf, con)
 
-    # 允许值域来自 OKF（业务声明），候选全集来自数据 DISTINCT（自动去硬编码）
     assert decls.value_domains[0].allowed == ["华东", "华南", "华北"]
-    # universe 来自 DISTINCT（顺序无关，DuckDB 中文按字节序排，用集合比）
     assert set(decls.value_domains[0].universe) == {"华东", "华南", "华北", "华中"}
     assert decls.relationships[0].total_label == "总销售额"
     assert decls.truth_checks[0].label == "总销售额"
@@ -112,34 +106,34 @@ def test_build_declarations_empty_when_no_guards(tmp_path):
 
 def test_self_correction_loop():
     def conclude(q, r):
-        return "总销售额 900 元"  # 错
+        return {"answer": "总销售额 900 元", "numbers": {"总销售额": 900}, "entities": []}
 
     def correct(q, r, reds):
-        return "总销售额 1000 元"  # 修正后对
+        return {"answer": "总销售额 1000 元", "numbers": {"总销售额": 1000}, "entities": []}
 
     def check(c):
-        return [] if "1000" in c else [
+        return [] if c["numbers"].get("总销售额") == 1000 else [
             type("F", (), {"kind": "truth", "message": "900 与真值 1000 不符"})()
         ]
 
-    conclusion, reds = _deliver(conclude, correct, check, "q", "r")
+    structured, reds = _deliver(conclude, correct, check, "q", "r")
     assert reds == []
-    assert "1000" in conclusion
+    assert structured["numbers"]["总销售额"] == 1000
 
 
 def test_self_correction_discloses_residual():
     def conclude(q, r):
-        return "华中 1 单"
+        return {"answer": "华中 1 单", "numbers": {}, "entities": ["华中"]}
 
     def correct(q, r, reds):
-        return "华中 1 单（不在标准区域，请人工确认）"
+        return {"answer": "华中 1 单（不在标准区域）", "numbers": {}, "entities": ["华中"]}
 
     def check(c):
         return [type("F", (), {"kind": "value_domain", "message": "「华中」不在允许值域"})()]
 
-    conclusion, reds = _deliver(conclude, correct, check, "q", "r")
+    structured, reds = _deliver(conclude, correct, check, "q", "r")
     assert len(reds) == 1
-    assert "华中" in conclusion
+    assert "华中" in structured["entities"]
 
 
 def test_run_guards_aggregates():
@@ -152,5 +146,5 @@ def test_run_guards_aggregates():
             )
         ]
     )
-    reds = run_guards("华中 1 单", decl)
+    reds = run_guards({"entities": ["华中"], "numbers": {}}, decl)
     assert len(reds) == 1 and reds[0].kind == "value_domain"

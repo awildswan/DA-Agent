@@ -1,9 +1,6 @@
-"""交付闸门守卫：值域守卫 + 关系守卫 + 核对 SQL 真值。"""
+"""交付闸门守卫：值域守卫 + 关系守卫 + 核对 SQL 真值（结构化数据，不解析文本）。"""
 
-import re
 from dataclasses import dataclass, field
-
-_UNITS = {"万": 10_000, "亿": 100_000_000}
 
 
 @dataclass
@@ -40,30 +37,17 @@ class Declarations:
     truth_checks: list[TruthDecl] = field(default_factory=list)
 
 
-def value_domain_check(conclusion: str, vd: ValueDomain) -> list[str]:
-    """值域守卫：结论里出现的候选实体，若不在允许值域内 → 违规。"""
+def value_domain_check(entities: list[str], vd: ValueDomain) -> list[str]:
+    """值域守卫：实体列表里，候选全集中不在允许值域内的 → 违规。"""
     allowed = set(vd.allowed)
-    return sorted(e for e in vd.universe if e in conclusion and e not in allowed)
+    universe = set(vd.universe)
+    return sorted(e for e in entities if e in universe and e not in allowed)
 
 
-def _extract_amount(text: str, label: str) -> float | None:
-    """在 label 之后提取第一个数字（万 / 亿归一化到元）。"""
-    idx = text.find(label)
-    if idx < 0:
-        return None
-    seg = text[idx + len(label): idx + len(label) + 24]
-    m = re.search(r"([0-9][0-9,]*(?:\.[0-9]+)?)\s*(万|亿)?", seg)
-    if not m:
-        return None
-    val = float(m.group(1).replace(",", ""))
-    unit = m.group(2) or ""
-    return val * _UNITS.get(unit, 1.0)
-
-
-def relationship_check(conclusion: str, decl: RelationshipDecl) -> RedFlag | None:
-    """关系守卫：总数 与 各分部之和 差额超容差 → 红灯（宁漏不误：提取不到不判）。"""
-    total = _extract_amount(conclusion, decl.total_label)
-    parts = [_extract_amount(conclusion, p) for p in decl.part_labels]
+def relationship_check(numbers: dict, decl: RelationshipDecl) -> RedFlag | None:
+    """关系守卫：numbers[总数] 与各分部之和 差额超容差 → 红灯（宁漏不误：缺数字不判）。"""
+    total = numbers.get(decl.total_label)
+    parts = [numbers.get(p) for p in decl.part_labels]
     if total is None or any(p is None for p in parts):
         return None
     s = sum(parts)
@@ -75,9 +59,9 @@ def relationship_check(conclusion: str, decl: RelationshipDecl) -> RedFlag | Non
     return None
 
 
-def truth_check(conclusion: str, label: str, truth_value: float, tolerance: float) -> RedFlag | None:
-    """核对 SQL 真值：结论里的数字 与 直查真值 不符 → 红灯。"""
-    got = _extract_amount(conclusion, label)
+def truth_check(numbers: dict, label: str, truth_value: float, tolerance: float) -> RedFlag | None:
+    """核对 SQL 真值：numbers[label] 与 直查真值 不符 → 红灯（缺数字不判）。"""
+    got = numbers.get(label)
     if got is None:
         return None
     if abs(got - truth_value) > truth_value * tolerance:
@@ -85,16 +69,21 @@ def truth_check(conclusion: str, label: str, truth_value: float, tolerance: floa
     return None
 
 
-def run_guards(conclusion: str, declarations: Declarations) -> list[RedFlag]:
-    """文本级守卫：值域 + 关系（核对 SQL 真值需直查，由 runner 单独调用 truth_check）。"""
+def run_guards(structured: dict, declarations: Declarations) -> list[RedFlag]:
+    """文本级守卫：值域 + 关系（核对 SQL 真值需直查，由 runner 单独调用 truth_check）。
+
+    structured = {"numbers": {标签: 数字}, "entities": [实体...]}
+    """
     reds: list[RedFlag] = []
+    entities = structured.get("entities", []) or []
+    numbers = structured.get("numbers", {}) or {}
     for vd in declarations.value_domains:
-        for e in value_domain_check(conclusion, vd):
+        for e in value_domain_check(entities, vd):
             reds.append(
                 RedFlag("value_domain", f"「{e}」不在 {vd.category} 允许值域 {vd.allowed}")
             )
     for r in declarations.relationships:
-        f = relationship_check(conclusion, r)
+        f = relationship_check(numbers, r)
         if f:
             reds.append(f)
     return reds

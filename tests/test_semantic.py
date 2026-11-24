@@ -39,6 +39,24 @@ def test_parse_concept_json_invalid():
     assert _parse_concept_json("这不是 JSON") is None
 
 
+def test_parse_conclusion_json():
+    from daagent.runner import _parse_conclusion_json
+
+    s = _parse_conclusion_json(
+        '{"answer": "6 单", "numbers": {"有效订单": 6}, "entities": ["华东"]}'
+    )
+    assert s["answer"] == "6 单"
+    assert s["numbers"] == {"有效订单": 6}
+    assert s["entities"] == ["华东"]
+
+
+def test_parse_conclusion_json_fallback_on_garbage():
+    from daagent.runner import _parse_conclusion_json
+
+    s = _parse_conclusion_json("这不是 JSON")
+    assert s["answer"] == "（结论解析失败）"
+
+
 def test_valid_concept_rejects_tautology():
     from daagent.runner import _valid_concept
 
