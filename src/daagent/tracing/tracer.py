@@ -19,6 +19,8 @@ class Span:
 class Trace:
     def __init__(self):
         self.spans: list[Span] = []
+        self.tokens: int = 0
+        self.llm_calls: int = 0
 
     @contextmanager
     def span(self, name: str, **meta):
@@ -29,4 +31,9 @@ class Trace:
             self.spans.append(Span(name, (time.perf_counter() - t0) * 1000, meta))
 
     def summary(self) -> str:
-        return " · ".join(f"{s.name} {s.duration_ms:.0f}ms" for s in self.spans)
+        parts = [f"{s.name} {s.duration_ms:.0f}ms" for s in self.spans]
+        if self.tokens:
+            parts.append(f"tokens {self.tokens}")
+        if self.llm_calls:
+            parts.append(f"LLM {self.llm_calls} 次")
+        return " · ".join(parts)

@@ -13,6 +13,7 @@ from langchain_openai import ChatOpenAI
 from daagent.agent.diagnose import _append_diagnosis, _diagnose
 from daagent.agent.react import run_react
 from daagent.config import get_settings
+from daagent.db.chat import ChatStore
 from daagent.db.query import _format_result
 from daagent.db.sample import list_tables as db_list_tables, sample_db, schema_for_table
 from daagent.delivery_check.declarations import DEFAULT_GUARDS_CONTENT, build_declarations
@@ -90,9 +91,9 @@ def _check(structured: dict, declarations, truths) -> list[RedFlag]:
     return reds
 
 
-def _deliver_round(llm_with_tools, messages, tools_by_name, check, max_rounds: int = 2):
+def _deliver_round(llm_with_tools, messages, tools_by_name, check, max_rounds: int = 2, stats: dict | None = None):
     """一轮：ReAct → 闸门 → 自纠。返回 (structured, reds)。"""
-    text = run_react(llm_with_tools, messages, tools_by_name)
+    text = run_react(llm_with_tools, messages, tools_by_name, stats=stats)
     structured = _parse_conclusion_json(text)
     for _ in range(max_rounds):
         reds = check(structured)
@@ -103,7 +104,7 @@ def _deliver_round(llm_with_tools, messages, tools_by_name, check, max_rounds: i
                 "上一版结论被交付闸门拦下：" + "；".join(r.message for r in reds) + "。请修正后重新输出 JSON。"
             )
         )
-        text = run_react(llm_with_tools, messages, tools_by_name)
+        text = run_react(llm_with_tools, messages, tools_by_name, stats=stats)
         structured = _parse_conclusion_json(text)
     return structured, reds
 
@@ -136,12 +137,15 @@ def run(question: str, okf_root: str | None = None) -> str:
     truths = _truths(con, declarations)
 
     trace = Trace()
+    stats = {"tokens": 0, "llm_calls": 0}
     messages = [SystemMessage(load_prompt("react")), HumanMessage(question)]
     with trace.span("ReAct+闸门+自纠"):
-        structured, reds = _deliver_round(llm_with_tools, messages, tools_by_name, lambda st: _check(st, declarations, truths))
+        structured, reds = _deliver_round(llm_with_tools, messages, tools_by_name, lambda st: _check(st, declarations, truths), stats=stats)
     answer = structured.get("answer", "（结论解析失败）")
     with trace.span("业务诊断"):
         answer = _append_diagnosis(answer, _diagnose(llm, question, answer))
+    trace.tokens = stats["tokens"]
+    trace.llm_calls = stats["llm_calls"]
     return _fmt_answer(answer, reds) + f"\n\n[trace] {trace.summary()}"
 
 
@@ -159,6 +163,11 @@ def chat() -> None:
     check = lambda st: _check(st, declarations, truths)
 
     messages = [SystemMessage(load_prompt("react"))]
+    store = ChatStore()
+    history = store.load("default", limit=20)
+    if history:
+        review = "；".join(f"{r}: {c[:40]}" for r, c in history[-6:])
+        messages.append(("system", f"[上次会话回顾] {review}"))
     print("数据分析 Agent（多轮对话，支持澄清）。输入 exit 退出。\n")
     while True:
         q = input("你: ").strip()
@@ -166,11 +175,16 @@ def chat() -> None:
             continue
         if q.lower() in ("exit", "quit"):
             break
+        store.save("default", "user", q)
         messages.append(HumanMessage(q))
         trace = Trace()
+        stats = {"tokens": 0, "llm_calls": 0}
         with trace.span("ReAct+闸门+自纠"):
-            structured, reds = _deliver_round(llm_with_tools, messages, tools_by_name, check)
+            structured, reds = _deliver_round(llm_with_tools, messages, tools_by_name, check, stats=stats)
         answer = structured.get("answer", "（结论解析失败）")
         with trace.span("业务诊断"):
             answer = _append_diagnosis(answer, _diagnose(llm, q, answer))
+        trace.tokens = stats["tokens"]
+        trace.llm_calls = stats["llm_calls"]
+        store.save("default", "agent", answer)
         print(f"\nAgent: {_fmt_answer(answer, reds)}\n[trace] {trace.summary()}\n")

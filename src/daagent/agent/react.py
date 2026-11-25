@@ -3,11 +3,26 @@
 from langchain_core.messages import ToolMessage
 
 
-def run_react(llm_with_tools, messages, tools_by_name, max_steps: int = 8) -> str:
-    """循环直到 LLM 不再返回 tool_calls（即给出最终答案），或达到最大步数。"""
+def _extract_tokens(resp) -> int:
+    """从 AIMessage 提取 token 数（langchain usage_metadata 或 response_metadata 兜底）。"""
+    um = getattr(resp, "usage_metadata", None)
+    if um:
+        return int(um.get("input_tokens", 0) or 0) + int(um.get("output_tokens", 0) or 0)
+    ru = (getattr(resp, "response_metadata", None) or {}).get("token_usage", {})
+    return int(ru.get("prompt_tokens", 0) or 0) + int(ru.get("completion_tokens", 0) or 0)
+
+
+def run_react(llm_with_tools, messages, tools_by_name, max_steps: int = 8, stats: dict | None = None):
+    """循环直到 LLM 不再返回 tool_calls（即给出最终答案），或达到最大步数。
+
+    stats（可选）：累计 {"tokens": int, "llm_calls": int}。
+    """
     for _ in range(max_steps):
         resp = llm_with_tools.invoke(messages)
         messages.append(resp)
+        if stats is not None:
+            stats["tokens"] = stats.get("tokens", 0) + _extract_tokens(resp)
+            stats["llm_calls"] = stats.get("llm_calls", 0) + 1
         tool_calls = getattr(resp, "tool_calls", None)
         if not tool_calls:
             return resp.content
