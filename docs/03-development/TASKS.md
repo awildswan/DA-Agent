@@ -21,9 +21,10 @@
 - [x] trace 基础版（V0.8b）：span 计时（每环节耗时，可观测的最小可用形态）
 - [x] 评测 L2（V0.8c）：5 道手工 SQL 题（计数/去重/多表），5/5 通过
 - [x] trace 完整版 + 会话持久化 + 上下文压缩（V0.8）：token 统计 / SQLite chat 表 / compact 摘要
+- [x] 评测 L2 真实 Spider 子集（V0.8d）：下载 xlangai/spider 前 50 题 + 执行准确率 54%（任意 SQL 匹配口径）
 
 ## 进行中 / 待规划
 
-- [ ] 评测完善（真实 Spider/BIRD benchmark + 复盘⑫ + 打分⑬，待讨论）
+- [ ] 复盘⑫ + 打分⑬（待讨论）
 - [ ] 桌面壳 + 打包
 - [ ] 多 Agent 编排（V2）
