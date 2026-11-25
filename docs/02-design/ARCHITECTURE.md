@@ -60,7 +60,8 @@
 │   └─ Rust 壳：窗口 / 更新器(tauri-plugin-updater) / 品牌      │
 │        ▲ invoke / event（IPC：stdio / 本地 socket）           │
 │  Python 核心（sidecar，无头可驱动）                           │
-│   ├─ agent runner（15 环节循环 + 自纠环）                     │
+│   ├─ orchestration（run/chat 编排 + 交付闸门/自纠）           │
+│   ├─ agent（ReAct 循环 / 诊断 / 上下文压缩）                  │
 │   ├─ tools（工具注册表：知识/数据库/用户交互，插拔）          │
 │   ├─ models（模型抽象：主/快模型可切换）                      │
 │   ├─ skills（SQL 守卫：禁词/字面量抹除）                      │

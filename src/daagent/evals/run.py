@@ -5,7 +5,7 @@
 
 import tempfile
 
-from daagent.agent.runner import run
+from daagent.orchestration import run
 from daagent.evals.cases import CASES, SQL_CASES
 from daagent.evals.scorer import score
 

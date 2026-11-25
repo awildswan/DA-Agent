@@ -29,7 +29,7 @@ def smoke() -> None:
 
 def main() -> None:
     if len(sys.argv) >= 2 and sys.argv[1] == "chat":
-        from daagent.agent.runner import chat
+        from daagent.orchestration import chat
 
         chat()
         return
@@ -48,7 +48,7 @@ def main() -> None:
         print_report(run_eval(SQL_CASES), "L2")
         return
     if len(sys.argv) >= 2 and sys.argv[1] == "ask":
-        from daagent.agent.runner import run
+        from daagent.orchestration import run
 
         q = " ".join(sys.argv[2:])
         if not q:
