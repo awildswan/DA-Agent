@@ -24,9 +24,10 @@
 - [x] 评测 L2 真实 Spider 子集（V0.8d）：下载 xlangai/spider 前 50 题 + 执行准确率 54%（任意 SQL 匹配口径）
 - [x] 借鉴通用 agent 分层（V0.8e）：工具注册表 tools/ + 模型抽象 models/ + 编排层 orchestration/（ADR-0006）
 - [x] 评测报告（EVAL_REPORT.md）：L1/L2/Spider 三层结果 + 方法论 + 诚实边界
+- [x] Web 壳（V0.9a）：FastAPI + 三栏 UI（导航/对话/产物面板），连 agent 核心
 
 ## 进行中 / 待规划
 
 - [ ] 复盘⑫ + 打分⑬（待讨论）
-- [ ] 桌面壳 + 打包
+- [ ] Tauri 打包（V0.9b：Rust 壳 + sidecar + 自动更新）
 - [ ] 多 Agent 编排（V2）

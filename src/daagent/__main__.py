@@ -28,6 +28,13 @@ def smoke() -> None:
 
 
 def main() -> None:
+    if len(sys.argv) >= 2 and sys.argv[1] == "web":
+        import uvicorn
+
+        from daagent.web.server import app
+
+        uvicorn.run(app, host="127.0.0.1", port=8000)
+        return
     if len(sys.argv) >= 2 and sys.argv[1] == "chat":
         from daagent.orchestration import chat
 

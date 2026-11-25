@@ -17,7 +17,14 @@ from daagent.tracing.tracer import Trace
 
 
 def run(question: str, okf_root: str | None = None) -> str:
-    llm = build_llm()
+    """返回格式化答案（含 trace 行），供 CLI。"""
+    r = run_structured(question, okf_root)
+    return f"{r['answer']}\n\n[trace] {r['trace']}"
+
+
+def run_structured(question: str, okf_root: str | None = None, model: str | None = None) -> dict:
+    """返回结构化结果 {answer, trace, tokens, llm_calls}，供 web/eval。"""
+    llm = build_llm(model=model)
     con = sample_db()
     okf = OkfStore(Path(okf_root) if okf_root else Path("data/okf"))
     if okf.read("guards", "orders") is None:
@@ -37,7 +44,12 @@ def run(question: str, okf_root: str | None = None) -> str:
         answer = _append_diagnosis(answer, _diagnose(llm, question, answer))
     trace.tokens = stats["tokens"]
     trace.llm_calls = stats["llm_calls"]
-    return _fmt_answer(answer, reds) + f"\n\n[trace] {trace.summary()}"
+    return {
+        "answer": _fmt_answer(answer, reds),
+        "trace": trace.summary(),
+        "tokens": trace.tokens,
+        "llm_calls": trace.llm_calls,
+    }
 
 
 def chat() -> None:
