@@ -21,7 +21,7 @@ region = 华东、华南、华北
 总销售额 = 华东、华南、华北、华中
 
 ## 核对 0.01
-总销售额 = SELECT SUM(amount) FROM orders
+总销售额 = SELECT SUM(amount) FROM orders WHERE status = 'paid'
 """
 
 

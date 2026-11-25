@@ -10,6 +10,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
 
+from daagent.agent.diagnose import _append_diagnosis, _diagnose
 from daagent.agent.react import run_react
 from daagent.config import get_settings
 from daagent.db.query import _format_result
@@ -107,6 +108,9 @@ def run(question: str) -> str:
         structured = _parse_conclusion_json(text)
 
     answer = structured.get("answer", "（结论解析失败）")
+
+    # ⑩ 业务诊断（按需：纯取数问题不打扰）
+    answer = _append_diagnosis(answer, _diagnose(llm, question, answer))
 
     if reds:
         tail = "⚠️ 自纠后仍有 " + "；".join(r.message for r in reds) + "（请人工复核）"
