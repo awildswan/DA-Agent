@@ -22,6 +22,7 @@ from daagent.okf.store import OkfStore
 from daagent.parsing import _parse_conclusion_json
 from daagent.prompts import load_prompt
 from daagent.skills.sql import _guard
+from daagent.tracing.tracer import Trace
 
 
 def _make_tools(okf, con, interactive: bool = False):
@@ -134,11 +135,14 @@ def run(question: str, okf_root: str | None = None) -> str:
     llm_with_tools = llm.bind_tools(tools)
     truths = _truths(con, declarations)
 
+    trace = Trace()
     messages = [SystemMessage(load_prompt("react")), HumanMessage(question)]
-    structured, reds = _deliver_round(llm_with_tools, messages, tools_by_name, lambda st: _check(st, declarations, truths))
+    with trace.span("ReAct+闸门+自纠"):
+        structured, reds = _deliver_round(llm_with_tools, messages, tools_by_name, lambda st: _check(st, declarations, truths))
     answer = structured.get("answer", "（结论解析失败）")
-    answer = _append_diagnosis(answer, _diagnose(llm, question, answer))
-    return _fmt_answer(answer, reds)
+    with trace.span("业务诊断"):
+        answer = _append_diagnosis(answer, _diagnose(llm, question, answer))
+    return _fmt_answer(answer, reds) + f"\n\n[trace] {trace.summary()}"
 
 
 def chat() -> None:
@@ -163,7 +167,10 @@ def chat() -> None:
         if q.lower() in ("exit", "quit"):
             break
         messages.append(HumanMessage(q))
-        structured, reds = _deliver_round(llm_with_tools, messages, tools_by_name, check)
+        trace = Trace()
+        with trace.span("ReAct+闸门+自纠"):
+            structured, reds = _deliver_round(llm_with_tools, messages, tools_by_name, check)
         answer = structured.get("answer", "（结论解析失败）")
-        answer = _append_diagnosis(answer, _diagnose(llm, q, answer))
-        print(f"\nAgent: {_fmt_answer(answer, reds)}\n")
+        with trace.span("业务诊断"):
+            answer = _append_diagnosis(answer, _diagnose(llm, q, answer))
+        print(f"\nAgent: {_fmt_answer(answer, reds)}\n[trace] {trace.summary()}\n")
