@@ -61,7 +61,9 @@
 │        ▲ invoke / event（IPC：stdio / 本地 socket）           │
 │  Python 核心（sidecar，无头可驱动）                           │
 │   ├─ agent runner（15 环节循环 + 自纠环）                     │
-│   ├─ skills（工具注册中心：数据源 / 查询 / 画图 / 知识读写）  │
+│   ├─ tools（工具注册表：知识/数据库/用户交互，插拔）          │
+│   ├─ models（模型抽象：主/快模型可切换）                      │
+│   ├─ skills（SQL 守卫：禁词/字面量抹除）                      │
 │   ├─ delivery_check（值域 / 关系 / 核对 SQL 真值）            │
 │   ├─ okf（知识库：写入守卫 / 版本化 / 体检）                  │
 │   ├─ eval（无头跑器 + 打分器 + 评测集）/ trace（span 双表）   │

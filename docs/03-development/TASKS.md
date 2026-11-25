@@ -22,6 +22,7 @@
 - [x] 评测 L2（V0.8c）：5 道手工 SQL 题（计数/去重/多表），5/5 通过
 - [x] trace 完整版 + 会话持久化 + 上下文压缩（V0.8）：token 统计 / SQLite chat 表 / compact 摘要
 - [x] 评测 L2 真实 Spider 子集（V0.8d）：下载 xlangai/spider 前 50 题 + 执行准确率 54%（任意 SQL 匹配口径）
+- [x] 工具层注册表 + 模型层抽象（V0.8e）：借鉴通用 agent 分层，tools/ 插拔 + models/ 可切换（ADR-0006）
 
 ## 进行中 / 待规划
 
