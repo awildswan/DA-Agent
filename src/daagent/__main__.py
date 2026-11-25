@@ -34,9 +34,13 @@ def main() -> None:
         chat()
         return
     if len(sys.argv) >= 2 and sys.argv[1] == "eval":
+        from daagent.evals.cases import CASES, SQL_CASES
         from daagent.evals.run import print_report, run_eval
 
-        print_report(run_eval())
+        print("=== L1 业务口径集 ===")
+        print_report(run_eval(CASES), "L1")
+        print("\n=== L2 SQL 准确率 ===")
+        print_report(run_eval(SQL_CASES), "L2")
         return
     if len(sys.argv) >= 2 and sys.argv[1] == "ask":
         from daagent.agent.runner import run
