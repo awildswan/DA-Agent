@@ -12,10 +12,12 @@ from pathlib import Path
 
 
 class OkfStore:
-    def __init__(self, root: str | Path):
+    def __init__(self, root: str | Path, git: bool = True):
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
-        self._ensure_git()
+        self.git = git
+        if self.git:
+            self._ensure_git()
 
     def _run(self, cmd) -> None:
         """跑 git 命令（静默；无 git 环境则跳过）。"""
@@ -60,6 +62,8 @@ class OkfStore:
         )
 
     def _commit(self, category: str, name: str, delta: int) -> None:
+        if not self.git:
+            return
         self._run(["git", "-C", str(self.root), "add", "-A"])
         sign = "+" if delta >= 0 else ""
         self._run(

@@ -83,7 +83,7 @@ def test_truth_check_flags():
 # --- 守卫声明从 OKF + DISTINCT 加载 ---
 
 def test_build_declarations_from_okf_and_distinct(tmp_path):
-    okf = OkfStore(tmp_path / "okf")
+    okf = OkfStore(tmp_path / "okf", git=False)
     okf.write("guards", "orders", DEFAULT_GUARDS_CONTENT)
     con = sample_db()
     decls = build_declarations(okf, con)
@@ -95,7 +95,7 @@ def test_build_declarations_from_okf_and_distinct(tmp_path):
 
 
 def test_build_declarations_empty_when_no_guards(tmp_path):
-    okf = OkfStore(tmp_path / "okf")
+    okf = OkfStore(tmp_path / "okf", git=False)
     decls = build_declarations(okf, sample_db())
     assert decls.value_domains == []
     assert decls.relationships == []

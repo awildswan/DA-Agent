@@ -28,6 +28,11 @@ def smoke() -> None:
 
 
 def main() -> None:
+    if len(sys.argv) >= 2 and sys.argv[1] == "eval":
+        from daagent.evals.run import print_report, run_eval
+
+        print_report(run_eval())
+        return
     if len(sys.argv) >= 2 and sys.argv[1] == "ask":
         from daagent.agent.runner import run
 

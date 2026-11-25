@@ -6,7 +6,7 @@ from daagent.parsing import _parse_concept_json, _parse_conclusion_json
 
 
 def test_recall_concepts_reads_okf(tmp_path):
-    okf = OkfStore(tmp_path / "okf")
+    okf = OkfStore(tmp_path / "okf", git=False)
     okf.write("concepts", "有效订单", "有效订单 = status='paid'（已支付）")
     okf.write("guards", "orders", "# orders\n\n## 允许\nregion = 华东")  # 非 concepts，应被忽略
     text = _recall_concepts(okf)
@@ -15,7 +15,7 @@ def test_recall_concepts_reads_okf(tmp_path):
 
 
 def test_recall_concepts_empty_when_no_concepts(tmp_path):
-    okf = OkfStore(tmp_path / "okf")
+    okf = OkfStore(tmp_path / "okf", git=False)
     okf.write("guards", "orders", "x")
     assert _recall_concepts(okf) == ""
 

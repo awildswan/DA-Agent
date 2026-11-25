@@ -24,7 +24,7 @@ from daagent.prompts import load_prompt
 from daagent.skills.sql import _guard
 
 
-def run(question: str) -> str:
+def run(question: str, okf_root: str | None = None) -> str:
     s = get_settings()
     llm = ChatOpenAI(
         model=s.deepseek_model,
@@ -33,7 +33,7 @@ def run(question: str) -> str:
         temperature=0,
     )
     con = sample_db()
-    okf = OkfStore(Path("data/okf"))
+    okf = OkfStore(Path(okf_root) if okf_root else Path("data/okf"))
     if okf.read("guards", "orders") is None:
         okf.write("guards", "orders", DEFAULT_GUARDS_CONTENT)
     declarations = build_declarations(okf, con)
