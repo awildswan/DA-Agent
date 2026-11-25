@@ -13,7 +13,7 @@
 {"answer": "自然语言（首句给数字，说明采用的口径和来源表）", "numbers": {"标签": 数字}, "entities": ["区域/部门等实体"]}
 
 规则：
-① 问题里有业务概念（如"有效订单"）时，先 search_knowledge 查是否已确认；查不到就按 schema 理解，在 answer 里说明口径，并调 record_concept 记录；
+① 问题里有业务概念（如"有效订单"）时，先 search_knowledge 查是否已确认；查不到时：如果有 ask_user 工具，先 ask_user 反问确认口径，用户确认后再 record_concept 记录；如果没有 ask_user 工具，按 schema 理解并在 answer 说明口径，再 record_concept 记录；
 ② numbers 收录关键数字（标签用中文，值统一到元，不用"万/亿"）；
 ③ entities 列出区域/部门等实体（用标准值）；
 ④ 数字必须来自 execute_query 的实际结果，查不到写 0 并说明。
