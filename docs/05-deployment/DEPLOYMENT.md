@@ -10,6 +10,13 @@
   - `uv run python -m daagent web` → 浏览器打开 http://127.0.0.1:8000；
   - `uv run python -m daagent desktop` → 原生桌面窗口。
 
+## Tauri 桌面壳（V0.9d）
+
+- Rust 工具链装在工作区（`.cargo` / `.rustup`，不入库，`CARGO_HOME`/`RUSTUP_HOME` 指向工作区）。
+- 编译：`cd src-tauri && cargo build --release` → `src-tauri/target/release/daagent-desktop.exe`（5.9 MB）。
+- 安装包：`npx @tauri-apps/cli build --bundles nsis`（当前环境因 GitHub 下载 NSIS/WiX 超时未出）。
+- 注意：该 exe 是"薄壳"，需本机 Python + daagent 包（启动时 spawn `python -m daagent web`）；真正 standalone 需 PyInstaller 打 sidecar。
+
 ## 待部署时填
 
 - 打包命令、签名密钥管理、更新清单（`updates/latest.json`）、只读账号配置、环境变量清单。

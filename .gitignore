@@ -30,3 +30,9 @@ AI-Agents-in-Depth-zh-CN.pdf
 
 data/spider/
 data/transcripts.jsonl
+
+# Tauri / Rust 工具链（本地安装）
+.toolchain/
+.cargo/
+.rustup/
+src-tauri/target/
