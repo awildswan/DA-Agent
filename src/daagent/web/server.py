@@ -49,16 +49,22 @@ def chat_stream(req: ChatRequest):
     sid = req.session_id or f"session-{int(time.time() * 1000)}"
 
     def worker():
+        events = []
+
+        def on_ev(e):
+            events.append(e)
+            q.put(e)
+
         try:
             r = run_structured(
                 req.question,
                 model=req.model,
-                on_event=lambda e: q.put(e),
+                on_event=on_ev,
                 deep_thinking=req.deep_thinking,
             )
             store = ChatStore()
             store.save(sid, "user", req.question)
-            store.save(sid, "agent", r["answer"])
+            store.save(sid, "agent", r["answer"], trace=events)
             q.put({"type": "done", "session_id": sid, **r})
         except Exception as e:  # noqa: BLE001
             q.put({"type": "error", "message": str(e)})
@@ -82,7 +88,9 @@ def sessions():
 
 @app.get("/api/sessions/{sid}")
 def session_messages(sid: str):
-    return {"messages": [{"role": r, "content": c} for r, c in ChatStore().load(sid, limit=200)]}
+    return {
+        "messages": [{"role": r, "content": c, "trace": t} for r, c, t in ChatStore().load(sid, limit=200)]
+    }
 
 
 @app.get("/api/tools")

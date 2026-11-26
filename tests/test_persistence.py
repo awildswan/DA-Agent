@@ -7,17 +7,19 @@ from daagent.db.chat import ChatStore
 def test_chat_store_roundtrip(tmp_path):
     s = ChatStore(str(tmp_path / "chat.db"))
     s.save("s1", "user", "华东有多少订单")
-    s.save("s1", "agent", "3 单")
+    s.save("s1", "agent", "3 单", trace=[{"type": "tool_call", "name": "execute_query", "args": {}}])
     rows = s.load("s1")
-    assert rows == [("user", "华东有多少订单"), ("agent", "3 单")]
+    assert rows[0] == ("user", "华东有多少订单", None)
+    assert rows[1][0] == "agent" and rows[1][1] == "3 单"
+    assert rows[1][2][0]["name"] == "execute_query"
 
 
 def test_chat_store_session_isolation(tmp_path):
     s = ChatStore(str(tmp_path / "chat.db"))
     s.save("s1", "user", "a")
     s.save("s2", "user", "b")
-    assert s.load("s1") == [("user", "a")]
-    assert s.load("s2") == [("user", "b")]
+    assert s.load("s1") == [("user", "a", None)]
+    assert s.load("s2") == [("user", "b", None)]
 
 
 class _Msg:

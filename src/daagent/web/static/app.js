@@ -110,6 +110,33 @@ function addMessage(role, text) {
   scroll();
 }
 
+/* 从已保存的事件重建折叠块（重开网页/切会话时用） */
+function renderTraceBlock(events) {
+  const steps = events.filter((e) => e.type === 'tool_call').length;
+  const details = document.createElement('details');
+  details.className = 'trace-box';
+  const summary = document.createElement('summary');
+  summary.textContent = `✅ 已完成 · ${steps} 步工具调用（点击展开）`;
+  details.appendChild(summary);
+  const body = document.createElement('div');
+  body.className = 'trace-body';
+  events.forEach((e) => {
+    let text = '';
+    if (e.type === 'thought') text = '💭 ' + e.content;
+    else if (e.type === 'tool_call') text = '⚙ ' + e.name + ' ' + JSON.stringify(e.args).slice(0, 80);
+    else if (e.type === 'tool_result') text = '👁 ' + (e.result || '').slice(0, 160);
+    if (text) {
+      const div = document.createElement('div');
+      div.className = 'trace-line';
+      div.textContent = text;
+      body.appendChild(div);
+    }
+  });
+  details.appendChild(body);
+  $('messages').appendChild(details);
+  scroll();
+}
+
 function scroll() { $('messages').scrollTop = $('messages').scrollHeight; }
 
 /* 会话列表（可切换） */
@@ -132,7 +159,14 @@ async function switchSession(sid) {
   const res = await fetch('/api/sessions/' + sid);
   const d = await res.json();
   $('messages').innerHTML = '';
-  d.messages.forEach((m) => addMessage(m.role === 'user' ? 'user' : 'agent', m.content));
+  d.messages.forEach((m) => {
+    if (m.role === 'user') {
+      addMessage('user', m.content);
+    } else {
+      if (m.trace && m.trace.length) renderTraceBlock(m.trace);
+      addMessage('agent', m.content);
+    }
+  });
   loadSessions();
 }
 

@@ -103,7 +103,7 @@ def chat() -> None:
     store = ChatStore()
     history = store.load("default", limit=20)
     if history:
-        review = "；".join(f"{r}: {c[:40]}" for r, c in history[-6:])
+        review = "；".join(f"{r}: {c[:40]}" for r, c, _ in history[-6:])
         messages.append(("system", f"[上次会话回顾] {review}"))
     print("数据分析 Agent（多轮对话，支持澄清）。输入 exit 退出。\n")
     while True:
