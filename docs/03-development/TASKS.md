@@ -27,9 +27,9 @@
 - [x] Web 壳（V0.9a）：FastAPI + 三栏 UI（导航/对话/产物面板），连 agent 核心
 - [x] Web 流式（V0.9b）：SSE 工具调用卡片 + 思考过程实时推（run_react 加 on_event）
 - [x] 复盘打分最小版（V0.8f）：transcript 持久化（jsonl）+ 确定性打分（4 维）+ review 命令
+- [x] 复盘⑫⑬ 完整版（V0.8g）：LLM 五维加权打分（D1-D5）+ 复盘报告（最弱维度→改进工单）
 
 ## 进行中 / 待规划
 
-- [ ] 复盘⑫⑬ 完整版（LLM 五维打分 + 用-查-改-用闭环）
 - [ ] Tauri 打包（V0.9c：Rust 壳 + sidecar + 自动更新，需装 Rust）
 - [ ] 多 Agent 编排（V2）
