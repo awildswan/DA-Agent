@@ -14,7 +14,7 @@
 
 - Rust 工具链装在工作区（`.cargo` / `.rustup`，不入库，`CARGO_HOME`/`RUSTUP_HOME` 指向工作区）。
 - 编译：`cd src-tauri && cargo build --release` → `src-tauri/target/release/daagent-desktop.exe`（5.9 MB）。
-- 安装包：`npx @tauri-apps/cli build --bundles nsis`（当前环境因 GitHub 下载 NSIS/WiX 超时未出）。
+- 安装包：`npx @tauri-apps/cli build --bundles nsis` → `src-tauri/target/release/bundle/nsis/daagent_0.1.0_x64-setup.exe`（1.44 MB）。
 - 注意：该 exe 是"薄壳"，需本机 Python + daagent 包（启动时 spawn `python -m daagent web`）；真正 standalone 需 PyInstaller 打 sidecar。
 
 ## 待部署时填
