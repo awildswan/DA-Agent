@@ -61,9 +61,18 @@ def _build_agent(db_path: Path, llm, sql_log: list):
 
     @tool
     def describe_table(table: str) -> str:
-        """返回指定表的列。"""
-        rows = _execute(db_path, f"PRAGMA table_info({table})")
-        return "\n".join(f"{r[1]} {r[2]}" for r in rows)
+        """返回指定表的列 + 主外键（外键决定 JOIN 条件）。"""
+        cols = _execute(db_path, f"PRAGMA table_info({table})")
+        col_lines = [f"  {c[1]} {c[2]}" + (" [PK]" if c[5] else "") for c in cols]
+        fks = _execute(db_path, f"PRAGMA foreign_key_list({table})")
+        fk_lines = [f"  {f[3]} -> {f[2]}.{f[4]}" for f in fks] if fks else ["  （无外键）"]
+        return "列：\n" + "\n".join(col_lines) + "\n外键：\n" + "\n".join(fk_lines)
+
+    @tool
+    def sample_values(table: str, column: str, limit: int = 5) -> str:
+        """查看某列的实际取值（去重，用于确定过滤条件的值，避免猜错大小写/格式）。"""
+        rows = _execute(db_path, f"SELECT DISTINCT {column} FROM {table} LIMIT {limit}")
+        return str([r[0] for r in rows])
 
     @tool
     def execute_query(sql: str) -> str:
@@ -71,7 +80,7 @@ def _build_agent(db_path: Path, llm, sql_log: list):
         sql_log.append(sql)
         return str(_execute(db_path, sql))
 
-    tools = [list_tables, describe_table, execute_query]
+    tools = [list_tables, describe_table, sample_values, execute_query]
     return llm.bind_tools(tools), {t.name: t for t in tools}
 
 

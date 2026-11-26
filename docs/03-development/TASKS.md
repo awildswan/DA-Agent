@@ -1,6 +1,6 @@
 # 任务清单（TASKS）
 
-> 编号：03-development/TASKS · 版本 v0.8 · 2026-11-25
+> 编号：03-development/TASKS · 版本 v0.9 · 2026-11-26
 
 ## 已完成
 
@@ -21,10 +21,11 @@
 - [x] trace 基础版（V0.8b）：span 计时（每环节耗时，可观测的最小可用形态）
 - [x] 评测 L2（V0.8c）：5 道手工 SQL 题（计数/去重/多表），5/5 通过
 - [x] trace 完整版 + 会话持久化 + 上下文压缩（V0.8）：token 统计 / SQLite chat 表 / compact 摘要
-- [x] 评测 L2 真实 Spider 子集（V0.8d）：下载 xlangai/spider 前 50 题 + 执行准确率 54%（任意 SQL 匹配口径）
+- [x] 评测 L2 真实 Spider 子集（V0.8d）：下载 xlangai/spider 前 50 题，执行准确率 74%（四招修复后：主外键+查值+约束输出+自检，从 54% 提到 74%）
 - [x] 借鉴通用 agent 分层（V0.8e）：工具注册表 tools/ + 模型抽象 models/ + 编排层 orchestration/（ADR-0006）
 - [x] 评测报告（EVAL_REPORT.md）：L1/L2/Spider 三层结果 + 方法论 + 诚实边界
 - [x] Web 壳（V0.9a）：FastAPI + 三栏 UI（导航/对话/产物面板），连 agent 核心
+- [x] Web 流式（V0.9b）：SSE 工具调用卡片 + 思考过程实时推（run_react 加 on_event）
 
 ## 进行中 / 待规划
 

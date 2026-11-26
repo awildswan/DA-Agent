@@ -25,9 +25,9 @@ def _check(structured: dict, declarations, truths) -> list[RedFlag]:
     return reds
 
 
-def _deliver_round(llm_with_tools, messages, tools_by_name, check, max_rounds: int = 2, stats: dict | None = None):
+def _deliver_round(llm_with_tools, messages, tools_by_name, check, max_rounds: int = 2, stats: dict | None = None, on_event=None):
     """一轮：ReAct → 闸门 → 自纠。返回 (structured, reds)。"""
-    text = run_react(llm_with_tools, messages, tools_by_name, stats=stats)
+    text = run_react(llm_with_tools, messages, tools_by_name, stats=stats, on_event=on_event)
     structured = _parse_conclusion_json(text)
     for _ in range(max_rounds):
         reds = check(structured)
@@ -38,7 +38,7 @@ def _deliver_round(llm_with_tools, messages, tools_by_name, check, max_rounds: i
                 "上一版结论被交付闸门拦下：" + "；".join(r.message for r in reds) + "。请修正后重新输出 JSON。"
             )
         )
-        text = run_react(llm_with_tools, messages, tools_by_name, stats=stats)
+        text = run_react(llm_with_tools, messages, tools_by_name, stats=stats, on_event=on_event)
         structured = _parse_conclusion_json(text)
     return structured, reds
 

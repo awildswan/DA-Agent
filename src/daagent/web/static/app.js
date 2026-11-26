@@ -9,23 +9,62 @@ async function send() {
   const model = $('model-select').value;
   $('progress').textContent = '处理中…';
   $('send').disabled = true;
+  let toolCard = null;
   try {
-    const res = await fetch('/api/chat', {
+    const res = await fetch('/api/chat/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ question: q, model }),
     });
-    const data = await res.json();
-    addMessage('agent', data.answer);
-    $('token-usage').textContent = `${data.tokens} tokens · ${data.llm_calls} 次 LLM 调用`;
-    $('progress').textContent = '完成';
-    loadSessions();
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const e = JSON.parse(line.slice(6));
+        if (e.type === 'tool_call') {
+          toolCard = addToolCard(e.name, e.args);
+        } else if (e.type === 'tool_result') {
+          if (toolCard) toolCard.querySelector('.tool-result').textContent = e.result.slice(0, 200);
+        } else if (e.type === 'done') {
+          addMessage('agent', e.answer);
+          $('token-usage').textContent = `${e.tokens} tokens · ${e.llm_calls} 次 LLM 调用`;
+          $('progress').textContent = '完成';
+          loadSessions();
+        } else if (e.type === 'error') {
+          addMessage('agent', '出错了：' + e.message);
+          $('progress').textContent = '失败';
+        }
+      }
+    }
   } catch (e) {
     addMessage('agent', '出错了：' + e.message);
     $('progress').textContent = '失败';
   } finally {
     $('send').disabled = false;
   }
+}
+
+function addToolCard(name, args) {
+  const div = document.createElement('div');
+  div.className = 'tool-card';
+  const head = document.createElement('div');
+  head.className = 'tool-head';
+  head.textContent = '🔧 ' + name + ' ' + JSON.stringify(args).slice(0, 80);
+  const result = document.createElement('div');
+  result.className = 'tool-result';
+  result.textContent = '…';
+  div.appendChild(head);
+  div.appendChild(result);
+  $('messages').appendChild(div);
+  $('messages').scrollTop = $('messages').scrollHeight;
+  return div;
 }
 
 function addMessage(role, text) {

@@ -1,8 +1,12 @@
 """Web 壳：FastAPI 服务，把 agent 核心暴露成 HTTP API（三栏 UI 的后端）。"""
 
+import json
+import queue
+import threading
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -24,6 +28,33 @@ def chat(req: ChatRequest):
     store.save("web", "user", req.question)
     store.save("web", "agent", r["answer"])
     return r
+
+
+@app.post("/api/chat/stream")
+def chat_stream(req: ChatRequest):
+    """SSE 流式：工具调用事件 → 最终答案。"""
+    q = queue.Queue()
+
+    def worker():
+        try:
+            r = run_structured(req.question, model=req.model, on_event=lambda e: q.put(e))
+            store = ChatStore()
+            store.save("web", "user", req.question)
+            store.save("web", "agent", r["answer"])
+            q.put({"type": "done", **r})
+        except Exception as e:  # noqa: BLE001
+            q.put({"type": "error", "message": str(e)})
+
+    threading.Thread(target=worker, daemon=True).start()
+
+    def gen():
+        while True:
+            e = q.get()
+            yield f"data: {json.dumps(e, ensure_ascii=False)}\n\n"
+            if e["type"] in ("done", "error"):
+                break
+
+    return StreamingResponse(gen(), media_type="text/event-stream")
 
 
 @app.get("/api/sessions")

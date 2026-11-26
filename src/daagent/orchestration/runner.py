@@ -22,8 +22,8 @@ def run(question: str, okf_root: str | None = None) -> str:
     return f"{r['answer']}\n\n[trace] {r['trace']}"
 
 
-def run_structured(question: str, okf_root: str | None = None, model: str | None = None) -> dict:
-    """返回结构化结果 {answer, trace, tokens, llm_calls}，供 web/eval。"""
+def run_structured(question: str, okf_root: str | None = None, model: str | None = None, on_event=None) -> dict:
+    """返回结构化结果 {answer, trace, tokens, llm_calls}，供 web/eval。on_event 用于流式。"""
     llm = build_llm(model=model)
     con = sample_db()
     okf = OkfStore(Path(okf_root) if okf_root else Path("data/okf"))
@@ -38,7 +38,7 @@ def run_structured(question: str, okf_root: str | None = None, model: str | None
     stats = {"tokens": 0, "llm_calls": 0}
     messages = [SystemMessage(load_prompt("react")), HumanMessage(question)]
     with trace.span("ReAct+闸门+自纠"):
-        structured, reds = _deliver_round(llm_with_tools, messages, tools_by_name, lambda st: _check(st, declarations, truths), stats=stats)
+        structured, reds = _deliver_round(llm_with_tools, messages, tools_by_name, lambda st: _check(st, declarations, truths), stats=stats, on_event=on_event)
     answer = structured.get("answer", "（结论解析失败）")
     with trace.span("业务诊断"):
         answer = _append_diagnosis(answer, _diagnose(llm, question, answer))

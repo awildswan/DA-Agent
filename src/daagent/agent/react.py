@@ -12,10 +12,11 @@ def _extract_tokens(resp) -> int:
     return int(ru.get("prompt_tokens", 0) or 0) + int(ru.get("completion_tokens", 0) or 0)
 
 
-def run_react(llm_with_tools, messages, tools_by_name, max_steps: int = 8, stats: dict | None = None):
+def run_react(llm_with_tools, messages, tools_by_name, max_steps: int = 8, stats: dict | None = None, on_event=None):
     """循环直到 LLM 不再返回 tool_calls（即给出最终答案），或达到最大步数。
 
     stats（可选）：累计 {"tokens": int, "llm_calls": int}。
+    on_event（可选）：每步工具调用回调 {"type": "tool_call"/"tool_result", ...}。
     """
     for _ in range(max_steps):
         resp = llm_with_tools.invoke(messages)
@@ -29,10 +30,14 @@ def run_react(llm_with_tools, messages, tools_by_name, max_steps: int = 8, stats
         for tc in tool_calls:
             name = tc.get("name")
             args = tc.get("args", {})
+            if on_event:
+                on_event({"type": "tool_call", "name": name, "args": args})
             tool = tools_by_name.get(name)
             try:
                 result = tool.invoke(args) if tool else f"未知工具 {name}"
             except Exception as e:  # noqa: BLE001
                 result = f"工具 {name} 执行失败：{e}"
+            if on_event:
+                on_event({"type": "tool_result", "name": name, "result": str(result)})
             messages.append(ToolMessage(content=str(result), tool_call_id=tc.get("id")))
     return "（达到最大步数，未给出最终答案）"
