@@ -11,3 +11,4 @@
 | [0005](0005-session-and-context-management.md) | 补充会话状态 + 上下文管理到设计 | Accepted |
 | [0006](0006-tool-registry-and-model-abstraction.md) | 借鉴通用 agent 分层：工具注册表 + 模型抽象（不照搬 6 层） | Accepted |
 | [0007](0007-web-shell-and-streaming.md) | Web 壳先行（FastAPI + SSE 流式），Tauri 打包后置 | Accepted |
+| [0008](0008-v2-data-foundation.md) | V2 数据地基：TPC-H + 数据源解绑 + 确定性度量基线 | Accepted |

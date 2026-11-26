@@ -1,7 +1,9 @@
 # 0004. 数据来源组合 + 两层评测标准
 
-- **状态**：Accepted
+- **状态**：Accepted（数据部分由 [ADR-0008](0008-v2-data-foundation.md) 修订）
 - **日期**：2026-11-22
+
+> **修订（2026-11-26）**：demo 数据集由 Northwind / AdventureWorks 改为 **TPC-H**（DuckDB 内置，8 表星型，可配 sf）——见 ADR-0008。评测两层标准不变（L1 自制 + L2 公开 benchmark）。
 
 ## 背景
 
