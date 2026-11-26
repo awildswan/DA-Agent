@@ -29,6 +29,7 @@ class ChatRequest(BaseModel):
     question: str
     model: str | None = None
     session_id: str | None = None
+    deep_thinking: bool = False
 
 
 @app.post("/api/chat")
@@ -49,7 +50,12 @@ def chat_stream(req: ChatRequest):
 
     def worker():
         try:
-            r = run_structured(req.question, model=req.model, on_event=lambda e: q.put(e))
+            r = run_structured(
+                req.question,
+                model=req.model,
+                on_event=lambda e: q.put(e),
+                deep_thinking=req.deep_thinking,
+            )
             store = ChatStore()
             store.save(sid, "user", req.question)
             store.save(sid, "agent", r["answer"])

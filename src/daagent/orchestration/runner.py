@@ -23,7 +23,13 @@ def run(question: str, okf_root: str | None = None) -> str:
     return f"{r['answer']}\n\n[trace] {r['trace']}"
 
 
-def run_structured(question: str, okf_root: str | None = None, model: str | None = None, on_event=None) -> dict:
+def run_structured(
+    question: str,
+    okf_root: str | None = None,
+    model: str | None = None,
+    on_event=None,
+    deep_thinking: bool = False,
+) -> dict:
     """返回结构化结果 {answer, trace, tokens, llm_calls}，供 web/eval。on_event 用于流式。"""
     events = []
 
@@ -42,9 +48,16 @@ def run_structured(question: str, okf_root: str | None = None, model: str | None
     llm_with_tools = llm.bind_tools(tools)
     truths = _truths(con, declarations)
 
+    system_prompt = load_prompt("react")
+    if deep_thinking:
+        system_prompt += (
+            "\n\n【深度思考】先仔细分析问题（拆解子问题、考虑边界与口径歧义），"
+            "再决定调用哪些工具，最后再给答案。"
+        )
+
     trace = Trace()
     stats = {"tokens": 0, "llm_calls": 0}
-    messages = [SystemMessage(load_prompt("react")), HumanMessage(question)]
+    messages = [SystemMessage(system_prompt), HumanMessage(question)]
     with trace.span("ReAct+闸门+自纠"):
         structured, reds = _deliver_round(llm_with_tools, messages, tools_by_name, lambda st: _check(st, declarations, truths), stats=stats, on_event=emit)
     answer = structured.get("answer", "（结论解析失败）")

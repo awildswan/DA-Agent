@@ -1,16 +1,7 @@
 const $ = (id) => document.getElementById(id);
 let currentSession = null;
-let currentModel = 'deepseek-flash';
-let lastAction = null;
-
-/* 深度思考 / 快速回答切换 */
-document.querySelectorAll('#mode-toggle .mode').forEach((el) => {
-  el.onclick = () => {
-    document.querySelectorAll('#mode-toggle .mode').forEach((m) => m.classList.remove('active'));
-    el.classList.add('active');
-    currentModel = el.dataset.model;
-  };
-});
+let traceBox = null;
+let stepCount = 0;
 
 $('new-session').onclick = () => {
   currentSession = 'session-' + Date.now();
@@ -27,11 +18,31 @@ async function send() {
   if (!currentSession) currentSession = 'session-' + Date.now();
   $('progress').textContent = '处理中…';
   $('send').disabled = true;
+
+  // 默认折叠的「已完成」思考块
+  stepCount = 0;
+  traceBox = document.createElement('details');
+  traceBox.className = 'trace-box';
+  const summary = document.createElement('summary');
+  summary.textContent = '⏳ 思考中…';
+  traceBox.appendChild(summary);
+  const body = document.createElement('div');
+  body.className = 'trace-body';
+  traceBox.appendChild(body);
+  $('messages').appendChild(traceBox);
+  scroll();
+
+  const payload = {
+    question: q,
+    model: $('model-select').value,
+    session_id: currentSession,
+    deep_thinking: $('deep-thinking').checked,
+  };
   try {
     const res = await fetch('/api/chat/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question: q, model: currentModel, session_id: currentSession }),
+      body: JSON.stringify(payload),
     });
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
@@ -57,47 +68,38 @@ async function send() {
 }
 
 function handleEvent(e) {
-  if (e.type === 'thought') addThought(e.content);
-  else if (e.type === 'tool_call') { addAction(e.name, e.args); markTool(e.name); }
-  else if (e.type === 'tool_result') fillObservation(e.result);
-  else if (e.type === 'done') {
+  if (e.type === 'thought') {
+    appendTrace('💭 ' + e.content);
+  } else if (e.type === 'tool_call') {
+    stepCount++;
+    appendTrace('⚙ ' + e.name + ' ' + JSON.stringify(e.args).slice(0, 80));
+  } else if (e.type === 'tool_result') {
+    appendTrace('👁 ' + e.result.slice(0, 160), 'obs');
+  } else if (e.type === 'done') {
+    finishTrace();
     addMessage('agent', e.answer);
     $('token-usage').textContent = `${e.tokens} tokens · ${e.llm_calls} 次 LLM`;
     $('progress').textContent = '完成';
   } else if (e.type === 'error') {
+    finishTrace();
     addMessage('agent', '出错了：' + e.message);
     $('progress').textContent = '失败';
   }
 }
 
-/* Thought（模型的自言自语，可折叠不展示细节） */
-function addThought(content) {
+function appendTrace(text, cls) {
+  if (!traceBox) return;
+  const box = traceBox.querySelector('.trace-body');
   const div = document.createElement('div');
-  div.className = 'trace-thought';
-  div.textContent = '💭 Thought: ' + content;
-  $('messages').appendChild(div);
-  scroll();
+  div.className = 'trace-line ' + (cls || '');
+  div.textContent = text;
+  box.appendChild(div);
 }
 
-/* Action（可折叠） */
-function addAction(name, args) {
-  const details = document.createElement('details');
-  details.className = 'trace-action';
-  details.open = true;
-  const summary = document.createElement('summary');
-  summary.textContent = '⚙ Action: ' + name + ' ' + JSON.stringify(args).slice(0, 60);
-  const obs = document.createElement('div');
-  obs.className = 'observation';
-  obs.textContent = '👁 Observation: …';
-  details.appendChild(summary);
-  details.appendChild(obs);
-  $('messages').appendChild(details);
-  lastAction = details;
-  scroll();
-}
-
-function fillObservation(result) {
-  if (lastAction) lastAction.querySelector('.observation').textContent = '👁 Observation: ' + result.slice(0, 200);
+function finishTrace() {
+  if (!traceBox) return;
+  traceBox.querySelector('summary').textContent = `✅ 已完成 · ${stepCount} 步工具调用（点击展开）`;
+  // 保持折叠（不设置 open）
 }
 
 function addMessage(role, text) {

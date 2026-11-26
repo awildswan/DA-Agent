@@ -26,12 +26,17 @@
     <main class="chat">
       <div id="messages" class="messages"></div>
       <div class="input-bar">
-        <div class="mode-toggle" id="mode-toggle">
-          <span class="mode active" data-model="deepseek-flash">⚡ 快速回答</span>
-          <span class="mode" data-model="deepseek-v4-pro">🧠 深度思考</span>
-        </div>
         <input id="input" class="input" placeholder="问数据问题，回车发送…">
         <button id="send" class="send">发送</button>
+      </div>
+      <div class="controls-bar">
+        <label class="ctrl">模型
+          <select id="model-select">
+            <option value="deepseek-flash">flash（快）</option>
+            <option value="deepseek-v4-pro">v4-pro（强）</option>
+          </select>
+        </label>
+        <label class="ctrl"><input type="checkbox" id="deep-thinking"> 🧠 深度思考</label>
       </div>
     </main>
 
