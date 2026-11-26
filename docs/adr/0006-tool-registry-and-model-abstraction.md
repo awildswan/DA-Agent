@@ -14,7 +14,7 @@
 1. **工具层独立成 `tools/` 注册表**（`knowledge` / `database` / `user` 按域分组，`registry.build_tools(okf, con, interactive)` 组装；加/减工具只改注册表，不动 runner）；
 2. **模型层抽象成 `models/`**（`build_llm(model=...)`，主/快模型可切换）。
 
-不照搬的理由：① `renderer` 是 V0.9 桌面壳的活；② `storage` 的向量我们结构化知识 + SQLite + git 就够，不需要；③ `planner/router/reflector` 与我们的 **14 环节垂直切片**（daw 数据智能体）不匹配，硬套是过度抽象。
+不照搬的理由：① `renderer` 是 V0.9 桌面壳的活；② `storage` 的向量我们结构化知识 + SQLite + git 就够，不需要；③ `planner/router/reflector` 与我们的 **15 环节垂直切片**（daw 数据智能体）不匹配，硬套是过度抽象。
 
 ## 后果
 

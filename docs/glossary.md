@@ -45,3 +45,17 @@
 | L1 自制业务口径集 | 数字命中 / 来源标注 / 首句先答 / 口径正确 / 闸门红灯（对齐 daw） |
 | L2 Spider / BIRD 子集 | SQL 生成 / 执行准确率回归（附诚实污染声明） |
 | A/B 对照 | 闸门开 / 关、有口径 / 无口径、自纠开 / 关的对照实验 |
+
+## 工程 / 打包类
+
+| 术语 | 定义 |
+|---|---|
+| ReAct | LLM 自主决定调工具的循环（Thought / Action / Observation） |
+| 工具注册表 | `tools/` 按域分组 + `build_tools()` 组装，工具插拔 |
+| 模型抽象 | `models/build_llm(model=...)`，主 / 快模型可切换 |
+| transcript | 一轮会话的完整记录（问题 + 工具调用 + 答案 + token + trace），供复盘打分 |
+| 会话切换 | 前端多会话（session_id）切换与加载 |
+| SSE | Server-Sent Events，流式推送工具调用事件（Thought/Action/Observation） |
+| 绿色版 | 解压即用、不装 Python（PyInstaller sidecar + Tauri 壳，ZIP） |
+| sidecar | 主程序旁的独立进程（Tauri 壳 → `daagent-server.exe`） |
+| 复盘⑫ / 打分⑬ | 读 transcript 找问题 / LLM 五维加权打分 → 最弱维度 = 改进工单 |

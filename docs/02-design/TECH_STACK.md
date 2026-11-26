@@ -10,6 +10,9 @@
 | 语言 | Python（后端 / 核心） | 胜负手在 Python 生态：`sqlglot` / `SQLAlchemy` / `DuckDB` / `pandas` / `sentence-transformers` |
 | 模型 / 工具 / MCP 抽象 | `langchain-core` + `langchain-openai`（配 DeepSeek 兼容端点，或 `langchain-deepseek`）+ `langchain-mcp-adapters` | DeepSeek 主模型（OpenAI 兼容 API）；多 provider 作后续扩展 |
 | **循环 / 编排** | **自写（显式状态机）** | 循环就是产品：交付闸门 / 自纠环 / 知识写回是领域逻辑，框架给不了 |
+| **Web 服务** | FastAPI + uvicorn，SSE 流式 | 三栏 UI 后端；核心/壳分离 |
+| **桌面壳** | Tauri v2 + WebView2（Rust）；备选 pywebview | 原生窗口 + 安装器；pywebview 纯 Python、无 Rust |
+| **打包** | Tauri NSIS 安装包 / PyInstaller 绿色版 + GitHub Actions CI | 安装包小；绿色版解压即用、不装 Python |
 
 ## 明确不用
 

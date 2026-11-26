@@ -36,6 +36,15 @@
 - trace 双表（trace + span）字段对齐 OTel，便于日后导出。
 - 评测集业务数字不进开源仓库（放 `~/.daw/evals/cases/` 之外），金牌复标 SQL 钉在直查新鲜值。
 
+### 实际实现（V1，简化于设计）
+
+| 设计 | 实际实现 | 说明 |
+|---|---|---|
+| chat（含 tool_calls / turn_usage） | `db/chat.py` 的 chat 表（session_id / role / content） | 会话元数据简化，够用 |
+| 完整 transcript 另存 jsonl | `tracing/transcript.py` → `data/transcripts.jsonl` | 含问题 + 工具调用事件 + 答案 + tokens + trace |
+| trace / span 双表 | `tracing/tracer.py` 内存 span（不落库） | 每环节耗时 + tokens 出在答案末尾 |
+| table_registry | 未实现（`db/sample.py` 硬编码三表） | V2 接真实多表时补 |
+
 ## 数据来源（已定：组合）
 
 > 参考结论：daw（唯一同域）用**真实业务库 + 自建口径集**，不用任何公共 NL2SQL benchmark；comet 用**三层评测**（L1 自制集 + L2 C-MTEB + L3 HotpotQA）。据此定案「组合」：
