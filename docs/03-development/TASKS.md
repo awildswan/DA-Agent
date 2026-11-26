@@ -28,6 +28,7 @@
 - [x] Web 流式（V0.9b）：SSE 工具调用卡片 + 思考过程实时推（run_react 加 on_event）
 - [x] 桌面窗口（V0.9c）：pywebview + WebView2 原生窗口（Tauri 因缺 Rust/MSVC 后置）
 - [x] Tauri 壳（V0.9d）：Rust 工具链装入工作区 + release exe 5.9MB + **NSIS 安装包 1.44MB 打包成功**
+- [x] 绿色版（V0.9e）：PyInstaller 独立 server sidecar（不装 Python）+ Tauri spawn sidecar + ZIP 绿色包 102.9MB（解压即用）
 - [x] 复盘打分最小版（V0.8f）：transcript 持久化（jsonl）+ 确定性打分（4 维）+ review 命令
 - [x] 复盘⑫⑬ 完整版（V0.8g）：LLM 五维加权打分（D1-D5）+ 复盘报告（最弱维度→改进工单）
 

@@ -1,38 +1,30 @@
 # Python
-__pycache__/
-*.py[cod]
-*.egg-info/
-dist/
-build/
-
-# 环境与密钥
-.env
 .venv/
-
-# 本地数据目录（对齐 daw ~/.daw）
-.daw/
-data/
-*.db
-*.duckdb
-
-# 工具缓存
+__pycache__/
+*.pyc
 .pytest_cache/
 .pytest_basetemp*/
 .pytest_tmp/
 .ruff_cache/
 
-# OS
-.DS_Store
-Thumbs.db
+# Env
+.env
 
-# 参考书目（版权，不入库）
-AI-Agents-in-Depth-zh-CN.pdf
-
+# Data (generated / local)
+data/okf/
 data/spider/
 data/transcripts.jsonl
 
-# Tauri / Rust �����������ذ�װ��
+# Tauri / Rust toolchain (local)
 .toolchain/
 .cargo/
 .rustup/
 src-tauri/target/
+
+# OS
+.DS_Store
+Thumbs.db
+
+dist/
+build/
+*.spec

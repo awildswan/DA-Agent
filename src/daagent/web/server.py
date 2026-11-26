@@ -2,6 +2,7 @@
 
 import json
 import queue
+import sys
 import threading
 import time
 from pathlib import Path
@@ -15,6 +16,13 @@ from daagent.db.chat import ChatStore
 from daagent.orchestration import run_structured
 
 app = FastAPI(title="数据分析 Agent")
+
+
+def _static_dir() -> Path:
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass:
+        return Path(meipass) / "daagent" / "web" / "static"
+    return Path(__file__).parent / "static"
 
 
 class ChatRequest(BaseModel):
@@ -78,5 +86,5 @@ def tools():
     }
 
 
-STATIC_DIR = Path(__file__).parent / "static"
+STATIC_DIR = _static_dir()
 app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")

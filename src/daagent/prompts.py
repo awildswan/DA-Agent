@@ -1,8 +1,17 @@
 """加载 prompt 模板（静态 prompt 与代码分离，便于版本管理 + 字节稳定）。"""
 
+import sys
 from pathlib import Path
 
-_DIR = Path(__file__).parent / "prompts"
+
+def _prompts_dir() -> Path:
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass:
+        return Path(meipass) / "daagent" / "prompts"
+    return Path(__file__).parent / "prompts"
+
+
+_DIR = _prompts_dir()
 
 
 def load_prompt(name: str) -> str:
