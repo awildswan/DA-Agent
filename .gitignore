@@ -16,7 +16,7 @@ data/okf/
 data/spider/
 data/chat.db
 data/transcripts.jsonl
-data/tpch/*.parquet
+data/tpch/
 
 # 本地恢复记录（ACL 修复备份）
 .acl-recovery/
