@@ -5,8 +5,10 @@
 
 ## 形态
 
-- 桌面应用：**Web 壳先行**（FastAPI + 静态三栏前端，V0.9a/b 已做，见 ADR-0007）；Tauri v2 打包（Python 核心作 sidecar，V0.9c），自动更新（`tauri-plugin-updater`）。
-- 开发运行：`uv run python -m daagent web` → 打开 http://127.0.0.1:8000。
+- 桌面应用：**Web 壳先行**（FastAPI + 静态三栏前端，V0.9a/b）+ **pywebview 原生窗口**（V0.9c，WebView2，Windows 10/11 自带）；Tauri v2 打包（需 Rust + MSVC）与 PyInstaller 打 exe 是后续打包步骤（见 ADR-0003 / ADR-0007）。
+- 运行方式：
+  - `uv run python -m daagent web` → 浏览器打开 http://127.0.0.1:8000；
+  - `uv run python -m daagent desktop` → 原生桌面窗口。
 
 ## 待部署时填
 

@@ -26,10 +26,11 @@
 - [x] 评测报告（EVAL_REPORT.md）：L1/L2/Spider 三层结果 + 方法论 + 诚实边界
 - [x] Web 壳（V0.9a）：FastAPI + 三栏 UI（导航/对话/产物面板），连 agent 核心
 - [x] Web 流式（V0.9b）：SSE 工具调用卡片 + 思考过程实时推（run_react 加 on_event）
+- [x] 桌面窗口（V0.9c）：pywebview + WebView2 原生窗口（Tauri 因缺 Rust/MSVC 后置）
 - [x] 复盘打分最小版（V0.8f）：transcript 持久化（jsonl）+ 确定性打分（4 维）+ review 命令
 - [x] 复盘⑫⑬ 完整版（V0.8g）：LLM 五维加权打分（D1-D5）+ 复盘报告（最弱维度→改进工单）
 
 ## 进行中 / 待规划
 
-- [ ] Tauri 打包（V0.9c：Rust 壳 + sidecar + 自动更新，需装 Rust）
+- [ ] 打包 exe（PyInstaller，或装 Rust/MSVC 后 Tauri + 自动更新）
 - [ ] 多 Agent 编排（V2）
