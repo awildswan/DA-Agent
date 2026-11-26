@@ -1,0 +1,40 @@
+name: build
+
+on:
+  push:
+    branches: [main, master]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Install dependencies
+        run: uv sync
+      - name: Run tests
+        run: uv run pytest -q
+
+  package:
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Python dependencies
+        run: uv sync
+      - name: Build standalone package (no eval deps, no .env)
+        run: powershell -ExecutionPolicy Bypass -File scripts/build_green.ps1
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: daagent-standalone-win64
+          path: dist/daagent-standalone-win64.zip
+          if-no-files-found: error

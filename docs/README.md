@@ -32,6 +32,8 @@ daagent/
     │   └── TEST_REPORT.md
     ├── 05-deployment/            # 部署
     │   └── DEPLOYMENT.md
+    ├── 06-roadmap/               # 路线图与阶段结项
+    │   └── V1-SUMMARY.md
     ├── prompts/                  # AI：prompt 版本管理
     │   └── README.md
     └── evaluations/              # AI：评测集设计
@@ -48,6 +50,7 @@ daagent/
 | `03-development/` | 开发环境 / 代码规范 / 任务清单 | 初始化时起步 |
 | `04-testing/` | 测试策略 + 报告 | 测试前 / 后 |
 | `05-deployment/` | 部署与打包 | 上线准备 |
+| `06-roadmap/` | 路线图 / 阶段结项（V1 总结 + V2 方向） | 阶段收尾时 |
 | `prompts/` | prompt 版本 + 变更记录 | 迭代期 |
 | `evaluations/` | 评测集设计（三层标准） | 迭代期 |
 
