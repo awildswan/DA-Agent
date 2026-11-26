@@ -26,6 +26,7 @@
 - [x] 评测报告（EVAL_REPORT.md）：L1/L2/Spider 三层结果 + 方法论 + 诚实边界
 - [x] Web 壳（V0.9a）：FastAPI + 三栏 UI（导航/对话/产物面板），连 agent 核心
 - [x] Web 流式（V0.9b）：SSE 工具调用卡片 + 思考过程实时推（run_react 加 on_event）
+- [x] 复盘打分最小版（V0.8f）：transcript 持久化（jsonl）+ 确定性打分（4 维）+ review 命令
 
 ## 进行中 / 待规划
 

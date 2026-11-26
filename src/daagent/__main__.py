@@ -40,6 +40,11 @@ def main() -> None:
 
         chat()
         return
+    if len(sys.argv) >= 2 and sys.argv[1] == "review":
+        from daagent.evals.session_score import review
+
+        review()
+        return
     if len(sys.argv) >= 2 and sys.argv[1] == "eval-spider":
         from daagent.evals.spider import print_report as spider_report, run_spider_eval
 

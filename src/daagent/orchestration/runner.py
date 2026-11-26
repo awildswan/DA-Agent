@@ -14,6 +14,7 @@ from daagent.orchestration.deliver import _check, _deliver_round, _fmt_answer, _
 from daagent.prompts import load_prompt
 from daagent.tools import build_tools
 from daagent.tracing.tracer import Trace
+from daagent.tracing.transcript import TranscriptStore
 
 
 def run(question: str, okf_root: str | None = None) -> str:
@@ -24,6 +25,13 @@ def run(question: str, okf_root: str | None = None) -> str:
 
 def run_structured(question: str, okf_root: str | None = None, model: str | None = None, on_event=None) -> dict:
     """返回结构化结果 {answer, trace, tokens, llm_calls}，供 web/eval。on_event 用于流式。"""
+    events = []
+
+    def emit(e):
+        events.append(e)
+        if on_event:
+            on_event(e)
+
     llm = build_llm(model=model)
     con = sample_db()
     okf = OkfStore(Path(okf_root) if okf_root else Path("data/okf"))
@@ -38,18 +46,31 @@ def run_structured(question: str, okf_root: str | None = None, model: str | None
     stats = {"tokens": 0, "llm_calls": 0}
     messages = [SystemMessage(load_prompt("react")), HumanMessage(question)]
     with trace.span("ReAct+闸门+自纠"):
-        structured, reds = _deliver_round(llm_with_tools, messages, tools_by_name, lambda st: _check(st, declarations, truths), stats=stats, on_event=on_event)
+        structured, reds = _deliver_round(llm_with_tools, messages, tools_by_name, lambda st: _check(st, declarations, truths), stats=stats, on_event=emit)
     answer = structured.get("answer", "（结论解析失败）")
     with trace.span("业务诊断"):
         answer = _append_diagnosis(answer, _diagnose(llm, question, answer))
     trace.tokens = stats["tokens"]
     trace.llm_calls = stats["llm_calls"]
-    return {
+    result = {
         "answer": _fmt_answer(answer, reds),
         "trace": trace.summary(),
         "tokens": trace.tokens,
         "llm_calls": trace.llm_calls,
     }
+    # 持久化 transcript（供复盘⑫ / 打分⑬）
+    TranscriptStore().save(
+        {
+            "question": question,
+            "model": model,
+            "events": events,
+            "answer": result["answer"],
+            "tokens": result["tokens"],
+            "llm_calls": result["llm_calls"],
+            "trace": result["trace"],
+        }
+    )
+    return result
 
 
 def chat() -> None:
