@@ -28,6 +28,11 @@ def smoke() -> None:
 
 
 def main() -> None:
+    if len(sys.argv) >= 2 and sys.argv[1] == "desktop":
+        from daagent.web.desktop import desktop
+
+        desktop()
+        return
     if len(sys.argv) >= 2 and sys.argv[1] == "web":
         import uvicorn
 
