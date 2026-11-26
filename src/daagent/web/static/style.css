@@ -15,11 +15,12 @@ body { font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; he
 .nav-list li.current { background: #e6f4ff; color: #1677ff; font-weight: 600; }
 
 /* 会话条目 + 操作菜单 */
+.nav-list li.session-item { overflow: visible; }
 .session-item { display: flex; align-items: center; padding: 6px 8px 6px 16px; position: relative; }
 .session-item .session-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .session-more { display: none; background: none; border: none; cursor: pointer; color: #999; font-size: 15px; padding: 0 4px; line-height: 1; }
 .session-item:hover .session-more { display: block; }
-.session-menu { display: none; position: absolute; right: 10px; top: 26px; z-index: 20; background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12); list-style: none; min-width: 120px; padding: 4px 0; }
+.session-menu { display: none; position: absolute; right: 10px; top: 26px; z-index: 100; background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12); list-style: none; min-width: 120px; padding: 4px 0; }
 .session-menu.open { display: block; }
 .session-menu li { padding: 8px 12px; font-size: 13px; cursor: pointer; }
 .session-menu li:hover { background: #f5f5f5; }
