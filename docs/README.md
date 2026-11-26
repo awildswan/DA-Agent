@@ -33,7 +33,8 @@ daagent/
     ├── 05-deployment/            # 部署
     │   └── DEPLOYMENT.md
     ├── 06-roadmap/               # 路线图与阶段结项
-    │   └── V1-SUMMARY.md
+    │   ├── V1-SUMMARY.md
+    │   └── V2-PLAN.md
     ├── prompts/                  # AI：prompt 版本管理
     │   └── README.md
     └── evaluations/              # AI：评测集设计
