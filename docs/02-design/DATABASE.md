@@ -40,10 +40,10 @@
 
 | 设计 | 实际实现 | 说明 |
 |---|---|---|
-| chat（含 tool_calls / turn_usage） | `db/chat.py` 的 chat 表（session_id / role / content） | 会话元数据简化，够用 |
-| 完整 transcript 另存 jsonl | `tracing/transcript.py` → `data/transcripts.jsonl` | 含问题 + 工具调用事件 + 答案 + tokens + trace |
-| trace / span 双表 | `tracing/tracer.py` 内存 span（不落库） | 每环节耗时 + tokens 出在答案末尾 |
-| table_registry | 未实现（`db/sample.py` 硬编码三表） | V2 接真实多表时补 |
+| chat（含 tool_calls / turn_usage） | `db/chat.py` 的 chat 表（session_id / role / content / **trace**）+ **sessions 表**（title / pinned） | 工具调用事件存 `chat.trace`；会话标题 / 置顶存 sessions |
+| 完整 transcript 另存 jsonl | `tracing/transcript.py` → `data/transcripts.jsonl` | 问题 + 事件 + 答案 + tokens + trace |
+| trace / span 双表 | `tracing/tracer.py` 内存 span + `chat.trace` 落库 | 每环节耗时 + tokens |
+| table_registry | 未实现（`db/sample.py` 硬编码三表） | V2 接真实多表 / 数据源解绑时补 |
 
 ## 数据来源（已定：组合）
 

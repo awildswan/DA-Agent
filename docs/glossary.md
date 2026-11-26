@@ -59,3 +59,7 @@
 | 绿色版 | 解压即用、不装 Python（PyInstaller sidecar + Tauri 壳，ZIP） |
 | sidecar | 主程序旁的独立进程（Tauri 壳 → `daagent-server.exe`） |
 | 复盘⑫ / 打分⑬ | 读 transcript 找问题 / LLM 五维加权打分 → 最弱维度 = 改进工单 |
+| 深度思考 | 模型的思考模式开关（runner 在 prompt 追加"先分析再行动"指令） |
+| 会话置顶 / 重命名 / 删除 | 会话管理操作（sessions 表：pinned / title） |
+| 数据源解绑 | agent 不绑定单数据集，连哪个库用哪个（运行时 schema 发现） |
+| TPC-H | 工业标准测试数据集（8 表星型模型，DuckDB 内置 `tpch` 扩展可生成） |

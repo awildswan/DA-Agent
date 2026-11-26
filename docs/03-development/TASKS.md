@@ -31,8 +31,10 @@
 - [x] 绿色版（V0.9e）：PyInstaller 独立 server sidecar（不装 Python）+ Tauri spawn sidecar + ZIP 绿色包 102.9MB（解压即用）
 - [x] 复盘打分最小版（V0.8f）：transcript 持久化（jsonl）+ 确定性打分（4 维）+ review 命令
 - [x] 复盘⑫⑬ 完整版（V0.8g）：LLM 五维加权打分（D1-D5）+ 复盘报告（最弱维度→改进工单）
+- [x] 前端交互（V0.9f）：模型切换 + 深度思考（输入栏下方）+ 思考过程默认折叠（已完成·N步）
+- [x] 会话增强（V0.9g）：trace 持久化（chat.trace，重开/切会话可重建）+ 会话菜单（置顶/重命名/删除，sessions 表）
 
 ## 进行中 / 待规划
 
-- [ ] 真正 standalone（PyInstaller 把 Python 打成 sidecar exe + Tauri 安装包）
-- [ ] 多 Agent 编排（V2）
+- [ ] V2.0 地基：TPC-H 数据集 + 数据源解绑 + 可靠性（见 `06-roadmap/V2-PLAN.md`）
+- [ ] 多 Agent 编排（V2 后期）
