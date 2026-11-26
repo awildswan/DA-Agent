@@ -30,3 +30,14 @@ class ChatStore:
             (session_id, limit),
         ).fetchall()
         return list(reversed(rows))
+
+    def list_sessions(self) -> list[dict]:
+        rows = self.conn.execute(
+            """
+            SELECT c1.session_id,
+                   (SELECT content FROM chat c2 WHERE c2.session_id=c1.session_id AND c2.role='user' ORDER BY c2.id LIMIT 1),
+                   COUNT(*)
+            FROM chat c1 GROUP BY c1.session_id ORDER BY MIN(c1.id) DESC
+            """
+        ).fetchall()
+        return [{"session_id": r[0], "first_question": r[1], "count": r[2]} for r in rows]

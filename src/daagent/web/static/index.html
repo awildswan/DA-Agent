@@ -11,18 +11,14 @@
     <!-- 左栏：导航 -->
     <aside class="nav">
       <div class="brand">📊 数据分析 Agent</div>
+      <button id="new-session" class="new-session">＋ 新会话</button>
       <div class="nav-section">
         <div class="nav-title">会话</div>
         <ul id="session-list" class="nav-list"></ul>
       </div>
       <div class="nav-section">
         <div class="nav-title">已连接工具</div>
-        <ul class="nav-list tools">
-          <li>📁 文件系统</li>
-          <li>⌨️ 终端</li>
-          <li>🌐 浏览器</li>
-          <li>🔌 MCP 插件</li>
-        </ul>
+        <ul id="tool-list" class="nav-list tools"></ul>
       </div>
     </aside>
 
@@ -30,10 +26,10 @@
     <main class="chat">
       <div id="messages" class="messages"></div>
       <div class="input-bar">
-        <select id="model-select" class="model-select">
-          <option value="deepseek-flash">deepseek-flash（快）</option>
-          <option value="deepseek-v4-pro">deepseek-v4-pro（强）</option>
-        </select>
+        <div class="mode-toggle" id="mode-toggle">
+          <span class="mode active" data-model="deepseek-flash">⚡ 快速回答</span>
+          <span class="mode" data-model="deepseek-v4-pro">🧠 深度思考</span>
+        </div>
         <input id="input" class="input" placeholder="问数据问题，回车发送…">
         <button id="send" class="send">发送</button>
       </div>
@@ -51,7 +47,7 @@
       </div>
       <div class="panel-section grow">
         <div class="panel-title">📦 产物</div>
-        <div id="artifacts" class="panel-body">文件预览 / 终端 / 浏览器输出（V0.9b）</div>
+        <div id="artifacts" class="panel-body">文件预览 / 终端 / 浏览器输出（后续）</div>
       </div>
     </aside>
   </div>

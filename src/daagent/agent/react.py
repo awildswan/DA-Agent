@@ -24,6 +24,10 @@ def run_react(llm_with_tools, messages, tools_by_name, max_steps: int = 8, stats
         if stats is not None:
             stats["tokens"] = stats.get("tokens", 0) + _extract_tokens(resp)
             stats["llm_calls"] = stats.get("llm_calls", 0) + 1
+        if on_event:
+            content = getattr(resp, "content", "") or ""
+            if content:
+                on_event({"type": "thought", "content": content})
         tool_calls = getattr(resp, "tool_calls", None)
         if not tool_calls:
             return resp.content

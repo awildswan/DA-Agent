@@ -3,6 +3,7 @@
 import json
 import queue
 import threading
+import time
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -19,29 +20,32 @@ app = FastAPI(title="数据分析 Agent")
 class ChatRequest(BaseModel):
     question: str
     model: str | None = None
+    session_id: str | None = None
 
 
 @app.post("/api/chat")
 def chat(req: ChatRequest):
     r = run_structured(req.question, model=req.model)
     store = ChatStore()
-    store.save("web", "user", req.question)
-    store.save("web", "agent", r["answer"])
-    return r
+    sid = req.session_id or f"session-{int(time.time() * 1000)}"
+    store.save(sid, "user", req.question)
+    store.save(sid, "agent", r["answer"])
+    return {**r, "session_id": sid}
 
 
 @app.post("/api/chat/stream")
 def chat_stream(req: ChatRequest):
-    """SSE 流式：工具调用事件 → 最终答案。"""
+    """SSE 流式：Thought → 工具调用事件 → 最终答案。"""
     q = queue.Queue()
+    sid = req.session_id or f"session-{int(time.time() * 1000)}"
 
     def worker():
         try:
             r = run_structured(req.question, model=req.model, on_event=lambda e: q.put(e))
             store = ChatStore()
-            store.save("web", "user", req.question)
-            store.save("web", "agent", r["answer"])
-            q.put({"type": "done", **r})
+            store.save(sid, "user", req.question)
+            store.save(sid, "agent", r["answer"])
+            q.put({"type": "done", "session_id": sid, **r})
         except Exception as e:  # noqa: BLE001
             q.put({"type": "error", "message": str(e)})
 
@@ -59,14 +63,18 @@ def chat_stream(req: ChatRequest):
 
 @app.get("/api/sessions")
 def sessions():
-    store = ChatStore()
-    return {"messages": [{"role": r, "content": c} for r, c in store.load("web", limit=50)]}
+    return {"sessions": ChatStore().list_sessions()}
+
+
+@app.get("/api/sessions/{sid}")
+def session_messages(sid: str):
+    return {"messages": [{"role": r, "content": c} for r, c in ChatStore().load(sid, limit=200)]}
 
 
 @app.get("/api/tools")
 def tools():
     return {
-        "tools": ["search_knowledge", "list_tables", "describe_table", "execute_query", "record_concept"]
+        "tools": ["search_knowledge", "record_concept", "list_tables", "describe_table", "execute_query"]
     }
 
 
