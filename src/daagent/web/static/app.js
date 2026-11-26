@@ -139,7 +139,7 @@ function renderTraceBlock(events) {
 
 function scroll() { $('messages').scrollTop = $('messages').scrollHeight; }
 
-/* 会话列表（可切换） */
+/* 会话列表（可切换 + hover 操作菜单） */
 async function loadSessions() {
   const res = await fetch('/api/sessions');
   const d = await res.json();
@@ -147,12 +147,76 @@ async function loadSessions() {
   list.innerHTML = '';
   d.sessions.forEach((s) => {
     const li = document.createElement('li');
-    li.textContent = (s.first_question || '会话').slice(0, 18);
+    li.className = 'session-item';
     li.classList.toggle('current', s.session_id === currentSession);
-    li.onclick = () => switchSession(s.session_id);
+
+    const title = document.createElement('span');
+    title.className = 'session-title';
+    title.textContent = (s.title || s.first_question || '会话').slice(0, 18);
+    title.onclick = () => switchSession(s.session_id);
+
+    const more = document.createElement('button');
+    more.className = 'session-more';
+    more.textContent = '⋯';
+    more.title = '更多';
+    more.onclick = (ev) => {
+      ev.stopPropagation();
+      toggleMenu(li);
+    };
+
+    const menu = document.createElement('ul');
+    menu.className = 'session-menu';
+    menu.innerHTML =
+      `<li data-act="pin">📌 ${s.pinned ? '取消置顶' : '置顶'}</li>` +
+      `<li data-act="rename">✏️ 重命名</li>` +
+      `<li data-act="delete">🗑 删除</li>`;
+    menu.querySelector('[data-act="pin"]').onclick = (ev) => { ev.stopPropagation(); doPin(s.session_id); };
+    menu.querySelector('[data-act="rename"]').onclick = (ev) => { ev.stopPropagation(); doRename(s.session_id); };
+    menu.querySelector('[data-act="delete"]').onclick = (ev) => { ev.stopPropagation(); doDelete(s.session_id); };
+
+    li.appendChild(title);
+    li.appendChild(more);
+    li.appendChild(menu);
     list.appendChild(li);
   });
 }
+
+function toggleMenu(li) {
+  const menu = li.querySelector('.session-menu');
+  const wasOpen = menu.classList.contains('open');
+  document.querySelectorAll('.session-menu.open').forEach((m) => m.classList.remove('open'));
+  if (!wasOpen) menu.classList.add('open');
+}
+
+async function doPin(sid) {
+  await fetch(`/api/sessions/${sid}/pin`, { method: 'POST' });
+  loadSessions();
+}
+
+async function doRename(sid) {
+  const name = prompt('重命名会话：');
+  if (!name) return;
+  await fetch(`/api/sessions/${sid}/rename`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title: name }),
+  });
+  loadSessions();
+}
+
+async function doDelete(sid) {
+  if (!confirm('确定删除这个会话？')) return;
+  await fetch(`/api/sessions/${sid}`, { method: 'DELETE' });
+  if (currentSession === sid) {
+    $('messages').innerHTML = '';
+    currentSession = null;
+  }
+  loadSessions();
+}
+
+document.addEventListener('click', () => {
+  document.querySelectorAll('.session-menu.open').forEach((m) => m.classList.remove('open'));
+});
 
 async function switchSession(sid) {
   currentSession = sid;

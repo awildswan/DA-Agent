@@ -32,6 +32,10 @@ class ChatRequest(BaseModel):
     deep_thinking: bool = False
 
 
+class RenameRequest(BaseModel):
+    title: str
+
+
 @app.post("/api/chat")
 def chat(req: ChatRequest):
     r = run_structured(req.question, model=req.model)
@@ -91,6 +95,24 @@ def session_messages(sid: str):
     return {
         "messages": [{"role": r, "content": c, "trace": t} for r, c, t in ChatStore().load(sid, limit=200)]
     }
+
+
+@app.post("/api/sessions/{sid}/pin")
+def pin_session(sid: str):
+    ChatStore().toggle_pin(sid)
+    return {"ok": True}
+
+
+@app.post("/api/sessions/{sid}/rename")
+def rename_session(sid: str, req: RenameRequest):
+    ChatStore().rename(sid, req.title)
+    return {"ok": True}
+
+
+@app.delete("/api/sessions/{sid}")
+def delete_session(sid: str):
+    ChatStore().delete(sid)
+    return {"ok": True}
 
 
 @app.get("/api/tools")
