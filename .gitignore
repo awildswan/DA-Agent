@@ -7,24 +7,31 @@ __pycache__/
 .pytest_tmp/
 .ruff_cache/
 
-# Env
+# Env（密钥不入库；.env.example 模板可入库）
 .env
+!.env.example
 
-# Data (generated / local)
+# Data（本地数据 / 下载的基准集，不入库）
 data/okf/
 data/spider/
+data/chat.db
 data/transcripts.jsonl
+data/tpch/*.parquet
 
-# Tauri / Rust toolchain (local)
+# 本地恢复记录（ACL 修复备份）
+.acl-recovery/
+
+# Tauri / Rust 工具链（本地安装）
 .toolchain/
 .cargo/
 .rustup/
 src-tauri/target/
 
-# OS
-.DS_Store
-Thumbs.db
-
+# 构建产物
 dist/
 build/
 *.spec
+
+# OS
+.DS_Store
+Thumbs.db
