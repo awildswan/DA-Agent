@@ -48,7 +48,7 @@
 
 - **形态**：本地优先桌面应用（数据全在本机，无云端依赖），最终打包成可分发安装包。
 - **核心 / 壳分离**：核心是**无头 Python**（可脱离 UI 独立跑评测），壳是桌面 webview——即 daw「Emitter 事件出口抽象 → 无头跑器」思路的顶层化。
-- **桌面壳**：Tauri v2 + webview 前端（贴近 daw），Python 核心作为 **sidecar 进程**，经本地 stdio / socket IPC 通信。
+- **桌面壳**：Web 壳先行（FastAPI + 静态三栏前端，V0.9a/b 已做）；Tauri v2 只是打包层（V0.9c，把 web 静态资源包进 Rust 壳 + Python sidecar）——见 ADR-0007。
 - **备选**：pywebview + PyInstaller（单语言更轻，但打包更大、无自动更新）——记入 ADR 取舍。
 
 ## 模块划分（C4 Level 2）
@@ -64,6 +64,7 @@
 │   ├─ agent（ReAct 循环 / 诊断 / 上下文压缩）                  │
 │   ├─ tools（工具注册表：知识/数据库/用户交互，插拔）          │
 │   ├─ models（模型抽象：主/快模型可切换）                      │
+│   ├─ web（FastAPI + 三栏前端 + SSE 流式）                     │
 │   ├─ skills（SQL 守卫：禁词/字面量抹除）                      │
 │   ├─ delivery_check（值域 / 关系 / 核对 SQL 真值）            │
 │   ├─ okf（知识库：写入守卫 / 版本化 / 体检）                  │
@@ -78,7 +79,7 @@
 
 ## 数据流（一次取数的端到端）
 
-用户消息 → 壳 UI → IPC → agent runner：① 召回 OKF → ② 语义映射（可能反问用户）→ ③ 规划 → ④ 探查 schema → ⑤ 生成 SQL（langchain-core）→ ⑥ 执行（DuckDB / 下推）→ ⑦ delivery_check → ⑧ 自纠（≤2 轮）→ ⑨ 交付 → ⑩ 业务诊断 → ⑪ 沉淀 OKF（git commit）→ 回传 UI（流式）+ trace span 落库。
+用户消息 → 壳 UI → HTTP/SSE → web server → orchestration：① 召回 OKF → ② 语义映射（可能反问用户）→ ③ 规划 → ④ 探查 schema → ⑤ 生成 SQL（langchain-core）→ ⑥ 执行（DuckDB / 下推）→ ⑦ delivery_check → ⑧ 自纠（≤2 轮）→ ⑨ 交付 → ⑩ 业务诊断 → ⑪ 沉淀 OKF（git commit）→ 回传 UI（SSE 流式推工具调用事件）+ trace span 落库。
 
 ## 关键取舍
 

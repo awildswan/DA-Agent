@@ -5,7 +5,8 @@
 
 ## 形态
 
-- 桌面应用，Tauri v2 打包（Python 核心作 sidecar），自动更新（`tauri-plugin-updater`）。
+- 桌面应用：**Web 壳先行**（FastAPI + 静态三栏前端，V0.9a/b 已做，见 ADR-0007）；Tauri v2 打包（Python 核心作 sidecar，V0.9c），自动更新（`tauri-plugin-updater`）。
+- 开发运行：`uv run python -m daagent web` → 打开 http://127.0.0.1:8000。
 
 ## 待部署时填
 
