@@ -4,19 +4,11 @@ import re
 
 from daagent.models import build_llm
 from daagent.parsing import _parse_json
+from daagent.prompts import load_prompt
 from daagent.tracing.transcript import TranscriptStore
 
 # 五维权重（对齐 MODULE_DESIGN ⑬）
 _WEIGHTS = {"D1": 0.30, "D2": 0.15, "D3": 0.20, "D4": 0.10, "D5": 0.25}
-
-_SCORE_PROMPT = """你是会话质量评审。给下面这轮会话的 agent 表现打分（每维 0-10 整数）：
-- D1 交付形态：首句先答数字、有来源、口径清晰
-- D2 效率稳定：token / 调用次数合理、无冗余探索
-- D3 知识行为：是否正确召回 / 沉淀业务口径
-- D4 验证倾向：是否真查数据、自检
-- D5 用户验收：答案是否直接回答了用户的问题、可直接采用
-
-只输出 JSON：{"D1": n, "D2": n, "D3": n, "D4": n, "D5": n, "理由": "一句话"}"""
 
 _IMPROVEMENT_HINTS = {
     "D1": "强化 prompt「首句给数字 + 来源表」纪律",
@@ -52,7 +44,7 @@ def _fmt_record(record: dict) -> str:
 
 def score_session_llm(llm, record: dict) -> dict:
     """LLM 五维加权打分（完整版）。"""
-    resp = llm.invoke([("system", _SCORE_PROMPT), ("human", _fmt_record(record))])
+    resp = llm.invoke([("system", load_prompt("score")), ("human", _fmt_record(record))])
     d = _parse_json(resp.content) or {}
     scores = {k: float(d.get(k, 0)) for k in _WEIGHTS}
     scores["total"] = round(sum(scores[k] * w for k, w in _WEIGHTS.items()), 1)

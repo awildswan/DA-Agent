@@ -1,5 +1,7 @@
 """上下文压缩（⑮）：超长历史把前半部分总结成一条摘要。"""
 
+from daagent.prompts import load_prompt
+
 
 def _fmt(m) -> str:
     role = getattr(m, "type", None) or type(m).__name__
@@ -15,7 +17,7 @@ def compact(messages, llm, keep_last: int = 6):
     text = "\n".join(_fmt(m) for m in old)
     summary = llm.invoke(
         [
-            ("system", "把以下对话历史压缩成要点摘要，保留已确认的口径、关键数字与上下文："),
+            ("system", load_prompt("compact")),
             ("human", text),
         ]
     ).content
