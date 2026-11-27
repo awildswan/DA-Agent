@@ -23,10 +23,17 @@ def make(ds):
         return ds.sample_data(table, limit)
 
     @tool
+    def list_connections() -> str:
+        """列出当前数据源与表（表登记）。"""
+        from daagent.db.registry import TableRegistry
+
+        return TableRegistry(ds).summary()
+
+    @tool
     def execute_query(sql: str) -> str:
         """执行一条只读 SQL，返回结果行。"""
         _guard(sql)
         ds.con.execute(sql)
         return _format_result(ds.con, ds.con.fetchall())
 
-    return [list_tables, describe_table, sample_data, execute_query]
+    return [list_tables, describe_table, sample_data, list_connections, execute_query]

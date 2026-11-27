@@ -36,8 +36,9 @@
 - [x] 度量基线（V2.0a）：确定性五维打分（D1-D5 机械判定，可复现）+ review 默认基线、LLM 作辅助；TPC-H sf=1 已本地生成
 - [x] 数据源解绑 + TPC-H 接入（V2.0b-1）：DataSource 抽象（sample / tpch 可切，`DAAGENT_DATASOURCE`）+ sample_data 工具 + 守卫降级；TPC-H sf=1 查到 150 万行
 - [x] 通用守卫（V2.0b-2）：从数据自动推导值域（TPC-H 29 域）+ 编造检测（实体不在数据值里→红灯），去掉 sample 专用声明
+- [x] V2.0b-3 可靠性：fail-loud（工具异常带类型 + tool_error 事件）+ table_registry/list_connections（TPC-H 8 表真实行数）+ store 板块级 upsert（frontmatter 拒写 / 同名空白归一化）
 
 ## 进行中 / 待规划
 
-- [ ] V2.0b-3 可靠性：table_registry + fail-loud（react 工具异常结构化）+ store 板块级 upsert
+- [ ] V2.1 度量：TPC-H 22 标准查询评测（金牌 = 直查真值，确定性打分做基线）
 - [ ] 多 Agent 编排（V2 后期）

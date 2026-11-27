@@ -16,6 +16,7 @@ def test_build_tools_non_interactive(tmp_path):
         "list_tables",
         "describe_table",
         "sample_data",
+        "list_connections",
         "execute_query",
     }
     assert set(by_name) == names

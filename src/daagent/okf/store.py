@@ -7,8 +7,14 @@
 - git 版本化：每次写入自动 commit（提交信息带板块名 + ±行数）。
 """
 
+import re
 import subprocess
 from pathlib import Path
+
+
+def _norm(s: str) -> str:
+    """空白归一化（同名标题匹配用）。"""
+    return re.sub(r"\s+", "", s)
 
 
 class OkfStore:
@@ -54,6 +60,53 @@ class OkfStore:
     def read(self, category: str, name: str) -> str | None:
         p = self._path(category, name)
         return p.read_text(encoding="utf-8").strip() if p.exists() else None
+
+    def upsert_block(self, category: str, file_name: str, block_name: str, content: str) -> dict:
+        """板块级写入：在 category/file_name.md 里 upsert `## block_name` 段，保留其他块。
+
+        - frontmatter / 整文件（# 一级标题）拒写（防 daw「把 write 当整文件保存用」的误用）；
+        - 同名标题空白归一化匹配（防同名重复块）；
+        - 返回回执 {category, file, block, delta}。
+        """
+        content = content.strip()
+        if not content:
+            raise ValueError("空板块内容拒写（fail-loud）")
+        if content.startswith("---") or re.match(r"^#\s", content):
+            raise ValueError("拒绝：疑似整文件 / frontmatter 内容（板块级写入请只给正文）")
+
+        p = self._path(category, file_name)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        old_text = p.read_text(encoding="utf-8") if p.exists() else ""
+        old_lines = old_text.count("\n")
+        norm = _norm(block_name)
+
+        lines = old_text.splitlines()
+        out = []
+        i = 0
+        replaced = False
+        while i < len(lines):
+            m = re.match(r"^##\s+(.*)$", lines[i])
+            if m and _norm(m.group(1)) == norm:
+                out.append(f"## {block_name}")
+                out.extend(content.splitlines())
+                i += 1
+                while i < len(lines) and not re.match(r"^##\s+", lines[i]):
+                    i += 1
+                replaced = True
+            else:
+                out.append(lines[i])
+                i += 1
+        if not replaced:
+            if out:
+                out.append("")
+            out.append(f"## {block_name}")
+            out.extend(content.splitlines())
+
+        new_text = "\n".join(out).rstrip() + "\n"
+        p.write_text(new_text, encoding="utf-8")
+        delta = new_text.count("\n") - old_lines
+        self._commit(category, file_name, delta)
+        return {"category": category, "file": file_name, "block": block_name, "delta": delta}
 
     def list_blocks(self) -> list[tuple[str, str]]:
         return sorted(

@@ -40,7 +40,10 @@ def run_react(llm_with_tools, messages, tools_by_name, max_steps: int = 8, stats
             try:
                 result = tool.invoke(args) if tool else f"未知工具 {name}"
             except Exception as e:  # noqa: BLE001
-                result = f"工具 {name} 执行失败：{e}"
+                # fail-loud：带错误类型 + 事件，不静默吞成一句字符串
+                result = f"工具 {name} 执行失败（{type(e).__name__}）：{e}"
+                if on_event:
+                    on_event({"type": "tool_error", "name": name, "error": f"{type(e).__name__}: {e}"})
             if on_event:
                 on_event({"type": "tool_result", "name": name, "result": str(result)})
             messages.append(ToolMessage(content=str(result), tool_call_id=tc.get("id")))
