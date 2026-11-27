@@ -35,7 +35,7 @@
 ## 四、打包与部署
 
 - **安装包**：Tauri NSIS `daagent_0.1.0_x64-setup.exe`（1.44 MB，装 Tauri 壳，需系统 Python）。
-- **绿色版**：`scripts/build_green.ps1` → `dist/daagent-standalone-win64.zip`（**解压即用，不装 Python**；PyInstaller 独立 server + Tauri 壳）。
+- **绿色版**：`scripts/build_green.ps1` → `dist/daagent-win64.zip`（**解压即用，不装 Python**；PyInstaller 独立 server + Tauri 壳）。
   - **打包规则**：排除 eval 依赖（datasets/pandas/pyarrow/huggingface_hub）；**不内置 .env**（用户自备 key 放 `daagent-server\.env`）。
 - **CI/CD**：`.github/workflows/build.yml`（test → package → upload artifact）。
 

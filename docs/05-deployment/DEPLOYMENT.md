@@ -21,7 +21,7 @@
 
 - PyInstaller 打独立 server：`uv run pyinstaller --onedir --name daagent-server --add-data "src/daagent/web/static;daagent/web/static" --add-data "src/daagent/prompts;daagent/prompts" --add-data ".env;." --collect-submodules uvicorn scripts/server_entry.py`
 - Tauri 壳 spawn `daagent-server/daagent-server.exe`（`src-tauri/src/main.rs`）。
-- 组装：`dist/green/daagent/`（Tauri exe + `daagent-server/` + README）→ `dist/daagent-standalone-win64.zip`（102.9 MB，解压双击即用）。
+- 组装：`dist/green/daagent/`（Tauri exe + `daagent-server/` + README）→ `dist/daagent-win64.zip`（102.9 MB，解压双击即用）。
 - 用户自带 key：在 `daagent-server\` 放 `.env`（`OPENAI_API_KEY=sk-...`）会优先于内置。
 
 ## 待部署时填
