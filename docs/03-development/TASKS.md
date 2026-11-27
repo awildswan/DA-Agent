@@ -34,8 +34,9 @@
 - [x] 前端交互（V0.9f）：模型切换 + 深度思考（输入栏下方）+ 思考过程默认折叠（已完成·N步）
 - [x] 会话增强（V0.9g）：trace 持久化（chat.trace，重开/切会话可重建）+ 会话菜单（置顶/重命名/删除，sessions 表）
 - [x] 度量基线（V2.0a）：确定性五维打分（D1-D5 机械判定，可复现）+ review 默认基线、LLM 作辅助；TPC-H sf=1 已本地生成
+- [x] 数据源解绑 + TPC-H 接入（V2.0b-1）：DataSource 抽象（sample / tpch 可切，`DAAGENT_DATASOURCE`）+ sample_data 工具 + 守卫降级；TPC-H sf=1 查到 150 万行
 
 ## 进行中 / 待规划
 
-- [ ] V2.0b 数据地基 + 可靠性：TPC-H 接入 db 层 + 数据源解绑 + table_registry + 时区/ fail-loud / upsert（见 `06-roadmap/V2-PLAN.md`）
+- [ ] V2.0b-2 可靠性：table_registry + fail-loud（react 工具异常结构化）+ store 板块级 upsert（含 TPC-H 专用守卫声明）
 - [ ] 多 Agent 编排（V2 后期）

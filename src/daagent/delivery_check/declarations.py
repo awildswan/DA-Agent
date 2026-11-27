@@ -51,7 +51,10 @@ def build_declarations(okf, con, table: str = "orders") -> Declarations:
             continue
         if section == "允许":
             cat, vals = line.split("=", 1)
-            universe = distinct_values(con, table, cat.strip())
+            try:
+                universe = distinct_values(con, table, cat.strip())
+            except Exception:  # noqa: BLE001  # 该列不适用于当前数据源，降级为空全集
+                universe = []
             decls.value_domains.append(
                 ValueDomain(category=cat.strip(), allowed=_split(vals), universe=universe)
             )

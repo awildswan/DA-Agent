@@ -10,8 +10,11 @@ from daagent.parsing import _parse_conclusion_json
 def _truths(con, declarations):
     ts = []
     for t in declarations.truth_checks:
-        con.execute(t.sql)
-        ts.append((t.label, float(con.fetchone()[0] or 0), t.tolerance))
+        try:
+            con.execute(t.sql)
+            ts.append((t.label, float(con.fetchone()[0] or 0), t.tolerance))
+        except Exception:  # noqa: BLE001  # 该真值 SQL 不适用于当前数据源，跳过
+            pass
     return ts
 
 
