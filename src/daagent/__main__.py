@@ -58,7 +58,9 @@ def main() -> None:
     if len(sys.argv) >= 2 and sys.argv[1] == "eval-tpch":
         from daagent.evals.tpch import run_tpch
 
-        run_tpch(int(sys.argv[2]) if len(sys.argv) > 2 else None)
+        runs = int(sys.argv[2]) if len(sys.argv) > 2 else 3
+        limit = int(sys.argv[3]) if len(sys.argv) > 3 else None
+        run_tpch(runs, limit)
         return
     if len(sys.argv) >= 2 and sys.argv[1] == "eval":
         from daagent.evals.cases import CASES, SQL_CASES
