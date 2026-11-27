@@ -7,7 +7,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from daagent.agent.diagnose import _append_diagnosis, _diagnose
 from daagent.db.chat import ChatStore
 from daagent.db.datasource import get_datasource
-from daagent.delivery_check.declarations import DEFAULT_GUARDS_CONTENT, build_declarations
+from daagent.delivery_check.declarations import build_generic_declarations
 from daagent.models import build_llm
 from daagent.okf.store import OkfStore
 from daagent.orchestration.deliver import _check, _deliver_round, _fmt_answer, _truths
@@ -42,9 +42,7 @@ def run_structured(
     ds = get_datasource()
     con = ds.con
     okf = OkfStore(Path(okf_root) if okf_root else Path("data/okf"))
-    if okf.read("guards", "orders") is None:
-        okf.write("guards", "orders", DEFAULT_GUARDS_CONTENT)
-    declarations = build_declarations(okf, con)
+    declarations = build_generic_declarations(ds)
     tools, tools_by_name = build_tools(okf, ds, interactive=False)
     llm_with_tools = llm.bind_tools(tools)
     truths = _truths(con, declarations)
@@ -93,9 +91,7 @@ def chat() -> None:
     ds = get_datasource()
     con = ds.con
     okf = OkfStore(Path("data/okf"))
-    if okf.read("guards", "orders") is None:
-        okf.write("guards", "orders", DEFAULT_GUARDS_CONTENT)
-    declarations = build_declarations(okf, con)
+    declarations = build_generic_declarations(ds)
     tools, tools_by_name = build_tools(okf, ds, interactive=True)
     llm_with_tools = llm.bind_tools(tools)
     truths = _truths(con, declarations)

@@ -69,14 +69,26 @@ def truth_check(numbers: dict, label: str, truth_value: float, tolerance: float)
     return None
 
 
-def run_guards(structured: dict, declarations: Declarations) -> list[RedFlag]:
-    """文本级守卫：值域 + 关系（核对 SQL 真值需直查，由 runner 单独调用 truth_check）。
+def hallucination_check(entities: list[str], universes: set[str]) -> list[str]:
+    """通用守卫：实体不在任何数据值里 → 疑似编造（任何数据集都适用）。"""
+    return sorted(e for e in entities if e and e not in universes)
 
-    structured = {"numbers": {标签: 数字}, "entities": [实体...]}
-    """
+
+def run_guards(structured: dict, declarations: Declarations) -> list[RedFlag]:
+    """文本级守卫：编造（通用）+ 值域（业务）+ 关系；核对 SQL 真值由 runner 单独调用。"""
     reds: list[RedFlag] = []
     entities = structured.get("entities", []) or []
     numbers = structured.get("numbers", {}) or {}
+
+    # 通用：实体必须存在于数据值里（防编造，任何数据源）
+    universes: set[str] = set()
+    for vd in declarations.value_domains:
+        universes |= set(vd.universe)
+    if entities and universes:
+        for e in hallucination_check(entities, universes):
+            reds.append(RedFlag("hallucination", f"「{e}」不在数据里（疑似编造）"))
+
+    # 业务：值域（在候选全集里但不在业务允许值域内 = 脏值）
     for vd in declarations.value_domains:
         for e in value_domain_check(entities, vd):
             reds.append(
