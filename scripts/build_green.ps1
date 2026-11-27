@@ -1,4 +1,4 @@
-# 绿色版打包脚本（CI 与本地共用）
+﻿# 绿色版打包脚本（CI 与本地共用）
 # 规则：排除 eval 依赖（datasets/pandas/pyarrow/huggingface_hub），不内置 .env（用户自备）
 $ErrorActionPreference = "Stop"
 
