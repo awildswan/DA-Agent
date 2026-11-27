@@ -37,8 +37,9 @@
 - [x] 数据源解绑 + TPC-H 接入（V2.0b-1）：DataSource 抽象（sample / tpch 可切，`DAAGENT_DATASOURCE`）+ sample_data 工具 + 守卫降级；TPC-H sf=1 查到 150 万行
 - [x] 通用守卫（V2.0b-2）：从数据自动推导值域（TPC-H 29 域）+ 编造检测（实体不在数据值里→红灯），去掉 sample 专用声明
 - [x] V2.0b-3 可靠性：fail-loud（工具异常带类型 + tool_error 事件）+ table_registry/list_connections（TPC-H 8 表真实行数）+ store 板块级 upsert（frontmatter 拒写 / 同名空白归一化）
+- [x] V2.1 TPC-H 22 题评测：金牌 22/22 通过，agent **11/22（≈50%）**；发现非确定性（同题跨轮 ✅/❌ 翻转）
 
 ## 进行中 / 待规划
 
-- [ ] V2.1 度量：TPC-H 22 标准查询评测（金牌 = 直查真值，确定性打分做基线）
+- [ ] V2.1 补：处理非确定性（同题跑 N 次取均值，评测可复现）
 - [ ] 多 Agent 编排（V2 后期）
