@@ -55,6 +55,11 @@ def main() -> None:
 
         spider_report(run_spider_eval())
         return
+    if len(sys.argv) >= 2 and sys.argv[1] == "eval-tpch":
+        from daagent.evals.tpch import run_tpch
+
+        run_tpch(int(sys.argv[2]) if len(sys.argv) > 2 else None)
+        return
     if len(sys.argv) >= 2 and sys.argv[1] == "eval":
         from daagent.evals.cases import CASES, SQL_CASES
         from daagent.evals.run import print_report, run_eval
