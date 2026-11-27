@@ -33,8 +33,9 @@
 - [x] 复盘⑫⑬ 完整版（V0.8g）：LLM 五维加权打分（D1-D5）+ 复盘报告（最弱维度→改进工单）
 - [x] 前端交互（V0.9f）：模型切换 + 深度思考（输入栏下方）+ 思考过程默认折叠（已完成·N步）
 - [x] 会话增强（V0.9g）：trace 持久化（chat.trace，重开/切会话可重建）+ 会话菜单（置顶/重命名/删除，sessions 表）
+- [x] 度量基线（V2.0a）：确定性五维打分（D1-D5 机械判定，可复现）+ review 默认基线、LLM 作辅助；TPC-H sf=1 已本地生成
 
 ## 进行中 / 待规划
 
-- [ ] V2.0 地基：TPC-H 数据集 + 数据源解绑 + 可靠性（见 `06-roadmap/V2-PLAN.md`）
+- [ ] V2.0b 数据地基 + 可靠性：TPC-H 接入 db 层 + 数据源解绑 + table_registry + 时区/ fail-loud / upsert（见 `06-roadmap/V2-PLAN.md`）
 - [ ] 多 Agent 编排（V2 后期）
